@@ -1,0 +1,2074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreshMart - Premium Online Grocery Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .cart-slide {
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        .cart-slide.active {
+            transform: translateX(0);
+        }
+        .product-card:hover {
+            transform: translateY(-4px);
+            transition: transform 0.2s ease;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .category-pill {
+            transition: all 0.2s ease;
+        }
+        .category-pill:hover {
+            transform: scale(1.05);
+        }
+        .category-pill.active {
+            background-color: #10b981;
+            color: white;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .wishlist-btn {
+            transition: all 0.2s ease;
+        }
+        .wishlist-btn.active {
+            color: #ef4444;
+        }
+        .rating {
+            color: #fbbf24;
+        }
+        .deal-badge {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .notification {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1001;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+        .notification.show {
+            transform: translateX(0);
+        }
+        .order-status {
+            position: relative;
+        }
+        .order-status::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            height: 2px;
+            background-color: #e5e7eb;
+            z-index: -1;
+        }
+        .order-status .active::before {
+            background-color: #10b981;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .step {
+            transition: all 0.3s ease;
+        }
+        .step.active {
+            background-color: #10b981;
+            color: white;
+        }
+        .step.completed {
+            background-color: #10b981;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Notification -->
+    <div id="notification" class="notification bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg">
+        <div class="flex items-center">
+            <i class="fas fa-check-circle mr-2"></i>
+            <span id="notificationText">Item added to cart!</span>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-40">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <i class="fas fa-shopping-basket text-green-600 text-2xl mr-2"></i>
+                    <h1 class="text-2xl font-bold text-gray-800">FreshMart</h1>
+                </div>
+                
+                <!-- Search Bar -->
+                <div class="flex-1 max-w-xl mx-8">
+                    <div class="relative">
+                        <input type="text" id="searchInput" placeholder="Search for products..." 
+                               class="w-full px-4 py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                </div>
+                
+                <!-- User Actions -->
+                <div class="flex items-center space-x-4">
+                    <button onclick="toggleWishlist()" class="relative p-2 text-gray-600 hover:text-red-500 transition">
+                        <i class="fas fa-heart text-xl"></i>
+                        <span id="wishlistCount" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                    </button>
+                    <button onclick="toggleCart()" class="relative p-2 text-gray-600 hover:text-green-600 transition">
+                        <i class="fas fa-shopping-cart text-2xl"></i>
+                        <span id="cartCount" class="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                    </button>
+                    <button onclick="toggleAccount()" class="flex items-center space-x-2 text-gray-600 hover:text-green-600 transition">
+                        <i class="fas fa-user-circle text-2xl"></i>
+                        <span class="hidden sm:inline">Account</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Categories Navigation -->
+    <nav class="bg-white border-b sticky top-16 z-30">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center space-x-4 py-3 overflow-x-auto">
+                <button onclick="filterByCategory('all')" class="category-pill active px-4 py-2 rounded-full bg-gray-100 text-sm font-medium whitespace-nowrap">
+                    All Products
+                </button>
+                <button onclick="filterByCategory('fruits')" class="category-pill px-4 py-2 rounded-full bg-gray-100 text-sm font-medium whitespace-nowrap">
+                    <i class="fas fa-apple-alt mr-1"></i> Fruits
+                </button>
+                <button onclick="filterByCategory('vegetables')" class="category-pill px-4 py-2 rounded-full bg-gray-100 text-sm font-medium whitespace-nowrap">
+                    <i class="fas fa-carrot mr-1"></i> Vegetables
+                </button>
+                <button onclick="filterByCategory('dairy')" class="category-pill px-4 py-2 rounded-full bg-gray-100 text-sm font-medium whitespace-nowrap">
+                    <i class="fas fa-cheese mr-1"></i> Dairy
+                </button>
+                <button onclick="filterByCategory('bakery')" class="category-pill px-4 py-2 rounded-full bg-gray-100 text-sm font-medium whitespace-nowrap">
+                    <i class="fas fa-bread-slice mr-1"></i> Bakery
+                </button>
+                <button onclick="filterByCategory('meat')" class="category-pill px-4 py-2 rounded-full bg-gray-100 text-sm font-medium whitespace-nowrap">
+                    <i class="fas fa-drumstick-bite mr-1"></i> Meat
+                </button>
+                <button onclick="filterByCategory('pantry')" class="category-pill px-4 py-2 rounded-full bg-gray-100 text-sm font-medium whitespace-nowrap">
+                    <i class="fas fa-box mr-1"></i> Pantry
+                </button>
+                <button onclick="filterByCategory('beverages')" class="category-pill px-4 py-2 rounded-full bg-gray-100 text-sm font-medium whitespace-nowrap">
+                    <i class="fas fa-wine-bottle mr-1"></i> Beverages
+                </button>
+                <button onclick="filterByCategory('frozen')" class="category-pill px-4 py-2 rounded-full bg-gray-100 text-sm font-medium whitespace-nowrap">
+                    <i class="fas fa-snowflake mr-1"></i> Frozen
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="mainContent" class="container mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <section class="mb-8">
+            <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-8 text-white">
+                <h2 class="text-4xl font-bold mb-2">Fresh Groceries Delivered to Your Door</h2>
+                <p class="text-lg mb-4">Quality products at affordable prices. Fast delivery guaranteed!</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                    <div class="flex items-center">
+                        <i class="fas fa-truck text-3xl mr-3"></i>
+                        <div>
+                            <h3 class="font-semibold">Free Delivery</h3>
+                            <p class="text-sm">On orders over $50</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-clock text-3xl mr-3"></i>
+                        <div>
+                            <h3 class="font-semibold">Same Day</h3>
+                            <p class="text-sm">Delivery available</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-shield-alt text-3xl mr-3"></i>
+                        <div>
+                            <h3 class="font-semibold">100% Fresh</h3>
+                            <p class="text-sm">Quality guaranteed</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Special Offers Banner -->
+        <section class="mb-8">
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-fire text-red-500 text-2xl mr-3"></i>
+                    <div>
+                        <h3 class="font-bold text-red-700">Flash Sale!</h3>
+                        <p class="text-sm text-red-600">Up to 50% off on selected items. Limited time only!</p>
+                    </div>
+                </div>
+                <button onclick="filterByCategory('all')" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                    Shop Now
+                </button>
+            </div>
+        </section>
+
+        <!-- Filters Section -->
+        <section class="mb-6 bg-white p-4 rounded-lg shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center space-x-4">
+                    <h3 class="font-semibold">Filters:</h3>
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm">Price Range:</label>
+                        <input type="range" id="priceRange" min="0" max="50" value="50" class="w-32" onchange="filterByPrice()">
+                        <span id="priceValue" class="text-sm font-medium">$0 - $50</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm">Rating:</label>
+                        <select id="ratingFilter" onchange="filterByRating()" class="px-3 py-1 border rounded text-sm">
+                            <option value="0">All Ratings</option>
+                            <option value="4">4+ Stars</option>
+                            <option value="3">3+ Stars</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-600" id="productCount">Showing 0 products</span>
+                    <select id="sortSelect" onchange="sortProducts()" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500">
+                        <option value="default">Sort by</option>
+                        <option value="price-low">Price: Low to High</option>
+                        <option value="price-high">Price: High to Low</option>
+                        <option value="name">Name: A to Z</option>
+                        <option value="rating">Rating: High to Low</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- Products Grid -->
+        <section>
+            <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                <!-- Products will be dynamically inserted here -->
+            </div>
+            
+            <!-- Pagination -->
+            <div class="flex justify-center mt-8">
+                <div class="flex space-x-2">
+                    <button onclick="changePage(-1)" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span id="pageNumbers" class="flex space-x-2">
+                        <!-- Page numbers will be dynamically inserted here -->
+                    </span>
+                    <button onclick="changePage(1)" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recently Viewed -->
+        <section class="mt-12">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">Recently Viewed</h3>
+            <div id="recentlyViewed" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <!-- Recently viewed products will be dynamically inserted here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- User Dashboard -->
+    <div id="userDashboard" class="container mx-auto px-4 py-8" style="display: none;">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold">My Dashboard</h2>
+                <button onclick="showMainContent()" class="text-green-600 hover:text-green-700">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to Shopping
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <div class="flex items-center">
+                        <i class="fas fa-shopping-bag text-green-600 text-2xl mr-3"></i>
+                        <div>
+                            <h3 class="font-semibold">Total Orders</h3>
+                            <p class="text-2xl font-bold" id="totalOrders">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <div class="flex items-center">
+                        <i class="fas fa-truck text-blue-600 text-2xl mr-3"></i>
+                        <div>
+                            <h3 class="font-semibold">Pending Orders</h3>
+                            <p class="text-2xl font-bold" id="pendingOrders">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <div class="flex items-center">
+                        <i class="fas fa-heart text-purple-600 text-2xl mr-3"></i>
+                        <div>
+                            <h3 class="font-semibold">Wishlist Items</h3>
+                            <p class="text-2xl font-bold" id="wishlistItemsCount">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="border-b mb-6">
+                <div class="flex space-x-6">
+                    <button onclick="switchTab('orders')" class="tab-btn py-2 px-1 border-b-2 border-green-600 font-semibold text-green-600" data-tab="orders">Order History</button>
+                    <button onclick="switchTab('account')" class="tab-btn py-2 px-1 border-b-2 border-transparent font-semibold text-gray-600 hover:text-green-600" data-tab="account">Account Settings</button>
+                    <button onclick="switchTab('addresses')" class="tab-btn py-2 px-1 border-b-2 border-transparent font-semibold text-gray-600 hover:text-green-600" data-tab="addresses">Saved Addresses</button>
+                </div>
+            </div>
+            
+            <!-- Tab Content -->
+            <div id="ordersTab" class="tab-content active">
+                <h3 class="text-xl font-semibold mb-4">Recent Orders</h3>
+                <div id="ordersList" class="space-y-4">
+                    <!-- Orders will be dynamically inserted here -->
+                </div>
+            </div>
+            
+            <div id="accountTab" class="tab-content">
+                <h3 class="text-xl font-semibold mb-4">Account Information</h3>
+                <form onsubmit="updateAccount(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                        <input type="text" id="accountName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="accountEmail" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                        <input type="tel" id="accountPhone" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                        <input type="password" id="accountPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500">
+                    </div>
+                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">Save Changes</button>
+                </form>
+            </div>
+            
+            <div id="addressesTab" class="tab-content">
+                <h3 class="text-xl font-semibold mb-4">Saved Addresses</h3>
+                <div id="addressesList" class="space-y-4 mb-6">
+                    <!-- Addresses will be dynamically inserted here -->
+                </div>
+                <button onclick="showAddAddressForm()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">
+                    <i class="fas fa-plus mr-2"></i> Add New Address
+                </button>
+                <div id="addAddressForm" class="mt-6 p-4 bg-gray-50 rounded-lg" style="display: none;">
+                    <h4 class="font-semibold mb-4">Add New Address</h4>
+                    <form onsubmit="addAddress(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Address Type</label>
+                            <select id="addressType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500">
+                                <option value="home">Home</option>
+                                <option value="work">Work</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Full Address</label>
+                            <textarea id="fullAddress" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500"></textarea>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                                <input type="text" id="addressCity" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+                                <input type="text" id="addressPostal" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500">
+                            </div>
+                        </div>
+                        <div class="flex space-x-4">
+                            <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">Save Address</button>
+                            <button type="button" onclick="hideAddAddressForm()" class="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Confirmation -->
+    <div id="orderConfirmation" class="container mx-auto px-4 py-8" style="display: none;">
+        <div class="bg-white rounded-lg shadow-md p-8 max-w-3xl mx-auto">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-check text-green-600 text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-2">Order Confirmed!</h2>
+                <p class="text-gray-600">Thank you for your order. Your order has been placed successfully.</p>
+            </div>
+            
+            <div class="border-b pb-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Order Summary</h3>
+                    <span class="text-gray-600">Order #<span id="confirmationOrderId"></span></span>
+                </div>
+                <div id="confirmationOrderItems" class="space-y-3">
+                    <!-- Order items will be dynamically inserted here -->
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <h4 class="font-semibold mb-2">Shipping Information</h4>
+                    <div id="confirmationShippingInfo" class="text-gray-600">
+                        <!-- Shipping info will be dynamically inserted here -->
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-2">Payment Information</h4>
+                    <div id="confirmationPaymentInfo" class="text-gray-600">
+                        <!-- Payment info will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h4 class="font-semibold mb-2">Order Status</h4>
+                    <div class="order-status flex justify-between">
+                        <div class="step active text-center">
+                            <i class="fas fa-check-circle"></i>
+                            <p class="text-xs mt-1">Confirmed</p>
+                        </div>
+                        <div class="step text-center">
+                            <i class="fas fa-box"></i>
+                            <p class="text-xs mt-1">Processing</p>
+                        </div>
+                        <div class="step text-center">
+                            <i class="fas fa-truck"></i>
+                            <p class="text-xs mt-1">Shipped</p>
+                        </div>
+                        <div class="step text-center">
+                            <i class="fas fa-home"></i>
+                            <p class="text-xs mt-1">Delivered</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-gray-600">Total Amount</p>
+                    <p class="text-2xl font-bold" id="confirmationTotal">$0.00</p>
+                </div>
+            </div>
+            
+            <div class="flex justify-center space-x-4">
+                <button onclick="showMainContent()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">
+                    Continue Shopping
+                </button>
+                <button onclick="showOrderTracker()" class="border border-green-600 text-green-600 px-6 py-2 rounded-lg hover:bg-green-50 transition">
+                    Track Order
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Tracker -->
+    <div id="orderTracker" class="container mx-auto px-4 py-8" style="display: none;">
+        <div class="bg-white rounded-lg shadow-md p-8 max-w-3xl mx-auto">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-2xl font-bold">Order Tracker</h2>
+                <button onclick="showMainContent()" class="text-green-600 hover:text-green-700">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to Shopping
+                </button>
+            </div>
+            
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Order #<span id="trackerOrderId"></span></h3>
+                    <span class="text-gray-600">Placed on <span id="trackerOrderDate"></span></span>
+                </div>
+                <div class="order-status flex justify-between mb-8">
+                    <div id="step1" class="step active text-center">
+                        <i class="fas fa-check-circle"></i>
+                        <p class="text-xs mt-1">Confirmed</p>
+                    </div>
+                    <div id="step2" class="step text-center">
+                        <i class="fas fa-box"></i>
+                        <p class="text-xs mt-1">Processing</p>
+                    </div>
+                    <div id="step3" class="step text-center">
+                        <i class="fas fa-truck"></i>
+                        <p class="text-xs mt-1">Shipped</p>
+                    </div>
+                    <div id="step4" class="step text-center">
+                        <i class="fas fa-home"></i>
+                        <p class="text-xs mt-1">Delivered</p>
+                    </div>
+                </div>
+                
+                <div id="trackerStatusMessage" class="bg-blue-50 p-4 rounded-lg mb-6">
+                    <p class="text-blue-700">Your order has been confirmed and is being processed.</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold mb-2">Delivery Address</h4>
+                        <div id="trackerDeliveryAddress" class="text-gray-600">
+                            <!-- Delivery address will be dynamically inserted here -->
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Estimated Delivery</h4>
+                        <div id="trackerEstimatedDelivery" class="text-gray-600">
+                            <!-- Estimated delivery will be dynamically inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t pt-6">
+                <h3 class="text-lg font-semibold mb-4">Order Items</h3>
+                <div id="trackerOrderItems" class="space-y-3">
+                    <!-- Order items will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shopping Cart Sidebar -->
+    <div id="cartSidebar" class="cart-slide fixed right-0 top-0 h-full w-96 bg-white shadow-2xl z-50 flex flex-col">
+        <div class="p-4 border-b">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold">Shopping Cart</h3>
+                <button onclick="toggleCart()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div id="cartItems" class="flex-1 overflow-y-auto p-4">
+            <!-- Cart items will be dynamically inserted here -->
+        </div>
+        
+        <div class="border-t p-4">
+            <div class="space-y-2 mb-4">
+                <div class="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span id="cartSubtotal">$0.00</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Delivery:</span>
+                    <span id="deliveryFee">$0.00</span>
+                </div>
+                <div class="flex justify-between font-bold text-lg">
+                    <span>Total:</span>
+                    <span id="cartTotal">$0.00</span>
+                </div>
+            </div>
+            <button onclick="startCheckout()" class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-semibold">
+                Proceed to Checkout
+            </button>
+        </div>
+    </div>
+
+    <!-- Wishlist Sidebar -->
+    <div id="wishlistSidebar" class="cart-slide fixed right-0 top-0 h-full w-96 bg-white shadow-2xl z-50 flex flex-col">
+        <div class="p-4 border-b">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold">My Wishlist</h3>
+                <button onclick="toggleWishlist()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div id="wishlistItems" class="flex-1 overflow-y-auto p-4">
+            <!-- Wishlist items will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <!-- Account Modal -->
+    <div id="accountModal" class="modal">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-bold">My Account</h3>
+                    <button onclick="toggleAccount()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div id="accountContent">
+                    <!-- Account content will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Detail Modal -->
+    <div id="productModal" class="modal">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 id="modalProductName" class="text-2xl font-bold"></h3>
+                    <button onclick="closeProductModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div id="productModalContent">
+                    <!-- Product detail content will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkoutModal" class="modal">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold">Checkout</h3>
+                    <button onclick="closeCheckout()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <!-- Checkout Steps -->
+                <div class="flex justify-between mb-8">
+                    <div class="flex-1 text-center">
+                        <div id="checkoutStep1" class="step active w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">1</div>
+                        <p class="text-sm">Address</p>
+                    </div>
+                    <div class="flex-1 text-center">
+                        <div id="checkoutStep2" class="step w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">2</div>
+                        <p class="text-sm">Payment</p>
+                    </div>
+                    <div class="flex-1 text-center">
+                        <div id="checkoutStep3" class="step w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">3</div>
+                        <p class="text-sm">Review</p>
+                    </div>
+                </div>
+                
+                <!-- Checkout Content -->
+                <div id="checkoutContent">
+                    <!-- Checkout content will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Overlay -->
+    <div id="cartOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden" onclick="toggleCart()"></div>
+    <div id="wishlistOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden" onclick="toggleWishlist()"></div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="container mx-auto px-4 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h4 class="font-bold mb-4">About FreshMart</h4>
+                    <p class="text-gray-400 mb-4">Your trusted online grocery store delivering fresh products to your doorstep.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-facebook text-xl"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-twitter text-xl"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-instagram text-xl"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-youtube text-xl"></i></a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">Customer Service</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white">Contact Us</a></li>
+                        <li><a href="#" class="hover:text-white">Delivery Info</a></li>
+                        <li><a href="#" class="hover:text-white">Returns & Refunds</a></li>
+                        <li><a href="#" class="hover:text-white">FAQs</a></li>
+                        <li><a href="#" class="hover:text-white">Track Order</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">Quick Links</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white">Special Offers</a></li>
+                        <li><a href="#" class="hover:text-white">New Arrivals</a></li>
+                        <li><a href="#" class="hover:text-white">Best Sellers</a></li>
+                        <li><a href="#" class="hover:text-white">Gift Cards</a></li>
+                        <li><a href="#" class="hover:text-white">Loyalty Program</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">Newsletter</h4>
+                    <p class="text-gray-400 mb-4">Subscribe to get special offers and updates</p>
+                    <form onsubmit="subscribeNewsletter(event)" class="flex">
+                        <input type="email" placeholder="Your email" required 
+                               class="flex-1 px-4 py-2 rounded-l-lg text-gray-800 focus:outline-none">
+                        <button type="submit" class="bg-green-600 px-4 py-2 rounded-r-lg hover:bg-green-700 transition">
+                            Subscribe
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 FreshMart. All rights reserved. | Privacy Policy | Terms of Service</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Extended product data with real names and image links
+        const products = [
+            // Fruits
+            { id: 1, name: "Fresh Red Apples", category: "fruits", price: 2.99, unit: "lb", image: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: 128, onSale: false, description: "Crisp and juicy red apples, perfect for snacking or baking." },
+            { id: 2, name: "Organic Bananas", category: "fruits", price: 0.59, unit: "lb", image: "https://images.unsplash.com/photo-1528825871115-3581a5387919?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.2, reviews: 95, onSale: true, salePrice: 0.49, description: "Sweet and creamy organic bananas, rich in potassium." },
+            { id: 3, name: "Fresh Strawberries", category: "fruits", price: 4.99, unit: "container", image: "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.8, reviews: 203, onSale: false, description: "Sweet and juicy strawberries, perfect for desserts or snacking." },
+            { id: 4, name: "Navel Oranges", category: "fruits", price: 3.49, unit: "bag", image: "https://images.unsplash.com/photo-1547514701-42782101795e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.3, reviews: 87, onSale: false, description: "Juicy and seedless navel oranges, packed with vitamin C." },
+            { id: 5, name: "Green Grapes", category: "fruits", price: 5.99, unit: "lb", image: "https://images.unsplash.com/photo-1537640538966-79f369143f8f?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.6, reviews: 156, onSale: true, salePrice: 4.99, description: "Sweet and crisp green grapes, perfect for snacking." },
+            { id: 6, name: "Golden Pineapple", category: "fruits", price: 3.99, unit: "each", image: "https://images.unsplash.com/photo-1490885578174-acda8905c2c6?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.4, reviews: 72, onSale: false, description: "Sweet and tangy golden pineapple, rich in vitamins." },
+            
+            // Vegetables
+            { id: 7, name: "Organic Spinach", category: "vegetables", price: 3.49, unit: "bunch", image: "https://images.unsplash.com/photo-1576042786965-19e05c1de5f5?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.7, reviews: 145, onSale: false, description: "Fresh organic spinach, perfect for salads and cooking." },
+            { id: 8, name: "Baby Carrots", category: "vegetables", price: 1.99, unit: "lb", image: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.1, reviews: 89, onSale: false, description: "Sweet and crunchy baby carrots, perfect for snacking." },
+            { id: 9, name: "Fresh Broccoli", category: "vegetables", price: 2.49, unit: "head", image: "https://images.unsplash.com/photo-1459411552884-841db9b3cc2a?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: 112, onSale: true, salePrice: 1.99, description: "Fresh and crisp broccoli, rich in vitamins and fiber." },
+            { id: 10, name: "Bell Peppers Mix", category: "vegetables", price: 3.99, unit: "lb", image: "https://images.unsplash.com/photo-1563564374598-bb75b6e0d5b6?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.3, reviews: 76, onSale: false, description: "Colorful mix of bell peppers, perfect for stir-fries." },
+            { id: 11, name: "Vine Tomatoes", category: "vegetables", price: 2.99, unit: "lb", image: "https://images.unsplash.com/photo-1592924379996-ab927b22c7ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.4, reviews: 134, onSale: false, description: "Juicy vine-ripened tomatoes, perfect for salads." },
+            { id: 12, name: "English Cucumbers", category: "vegetables", price: 1.49, unit: "each", image: "https://images.unsplash.com/photo-1582726476344-2c2b805d5e8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.0, reviews: 58, onSale: false, description: "Crisp and refreshing English cucumbers, perfect for salads." },
+            
+            // Dairy
+            { id: 13, name: "Whole Milk", category: "dairy", price: 3.99, unit: "gallon", image: "https://images.unsplash.com/photo-1550583724-b2692b85b150?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.6, reviews: 189, onSale: false, description: "Fresh whole milk, rich in calcium and vitamins." },
+            { id: 14, name: "Aged Cheddar Cheese", category: "dairy", price: 5.99, unit: "lb", image: "https://images.unsplash.com/photo-1486475574454-1f9e2dfea4a8?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.8, reviews: 167, onSale: true, salePrice: 4.99, description: "Sharp and flavorful aged cheddar cheese." },
+            { id: 15, name: "Greek Yogurt", category: "dairy", price: 4.49, unit: "container", image: "https://images.unsplash.com/photo-1488477181946-6428a0291777?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.7, reviews: 203, onSale: false, description: "Creamy and protein-rich Greek yogurt." },
+            { id: 16, name: "Unsalted Butter", category: "dairy", price: 4.99, unit: "lb", image: "https://images.unsplash.com/photo-1582652720895-c43b6b1f8a6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: 98, onSale: false, description: "Creamy unsalted butter, perfect for baking." },
+            { id: 17, name: "Free-Range Eggs", category: "dairy", price: 3.49, unit: "dozen", image: "https://images.unsplash.com/photo-1518569656558-1f25e8d86fd3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.4, reviews: 145, onSale: false, description: "Fresh free-range eggs from happy chickens." },
+            { id: 18, name: "Cream Cheese", category: "dairy", price: 2.99, unit: "container", image: "https://images.unsplash.com/photo-1622597467836-f3c0ca543330?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.2, reviews: 67, onSale: false, description: "Smooth and creamy cream cheese, perfect for bagels." },
+            
+            // Bakery
+            { id: 19, name: "Whole Wheat Bread", category: "bakery", price: 3.49, unit: "loaf", image: "https://images.unsplash.com/photo-1596367406869-43f36a738519?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.3, reviews: 156, onSale: false, description: "Nutritious whole wheat bread, freshly baked daily." },
+            { id: 20, name: "Butter Croissants", category: "bakery", price: 4.99, unit: "pack", image: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.9, reviews: 234, onSale: true, salePrice: 3.99, description: "Flaky and buttery croissants, perfect for breakfast." },
+            { id: 21, name: "Plain Bagels", category: "bakery", price: 3.99, unit: "pack", image: "https://images.unsplash.com/photo-1586985289704-ca1251c2b792?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: 112, onSale: false, description: "Chewy and delicious plain bagels, perfect for toasting." },
+            { id: 22, name: "Blueberry Muffins", category: "bakery", price: 5.99, unit: "dozen", image: "https://images.unsplash.com/photo-1607902281477-3ecd8f9b5a8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.6, reviews: 89, onSale: false, description: "Moist and fluffy blueberry muffins, bursting with flavor." },
+            { id: 23, name: "Sourdough Bread", category: "bakery", price: 4.99, unit: "loaf", image: "https://images.unsplash.com/photo-1585478259878-5c33399a2663?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.7, reviews: 178, onSale: false, description: "Artisan sourdough bread with a crispy crust." },
+            { id: 24, name: "Glazed Donuts", category: "bakery", price: 6.99, unit: "dozen", image: "https://images.unsplash.com/photo-1551024601-bec78aea704b?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.4, reviews: 145, onSale: true, salePrice: 5.49, description: "Sweet and fluffy glazed donuts, perfect for treats." },
+            
+            // Meat
+            { id: 25, name: "Boneless Chicken Breast", category: "meat", price: 8.99, unit: "lb", image: "https://images.unsplash.com/photo-1604503468506-a8da13abf475?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: 267, onSale: false, description: "Lean and tender boneless chicken breast, perfect for grilling." },
+            { id: 26, name: "Ground Beef", category: "meat", price: 6.99, unit: "lb", image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.3, reviews: 189, onSale: false, description: "Fresh ground beef, perfect for burgers and meatballs." },
+            { id: 27, name: "Atlantic Salmon Fillet", category: "meat", price: 12.99, unit: "lb", image: "https://images.unsplash.com/photo-1618160867146-33a893c47753?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.8, reviews: 312, onSale: true, salePrice: 9.99, description: "Fresh Atlantic salmon fillet, rich in omega-3." },
+            { id: 28, name: "Pork Chops", category: "meat", price: 7.99, unit: "lb", image: "https://images.unsplash.com/photo-1603363814816-9e0d6a2e5e8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.4, reviews: 134, onSale: false, description: "Juicy and flavorful pork chops, perfect for pan-frying." },
+            { id: 29, name: "Applewood Smoked Bacon", category: "meat", price: 9.99, unit: "lb", image: "https://images.unsplash.com/photo-1527378337412-2d635514b9c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.7, reviews: 245, onSale: false, description: "Smoky and crispy bacon, perfect for breakfast." },
+            { id: 30, name: "Turkey Breast", category: "meat", price: 10.99, unit: "lb", image: "https://images.unsplash.com/photo-1586227730552-6d63e1b932f3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.6, reviews: 156, onSale: false, description: "Lean and tender turkey breast, perfect for sandwiches." },
+            
+            // Pantry
+            { id: 31, name: "Penne Pasta", category: "pantry", price: 1.99, unit: "box", image: "https://images.unsplash.com/photo-1588207141120-735678628b2e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.2, reviews: 98, onSale: false, description: "Premium penne pasta, perfect for hearty dishes." },
+            { id: 32, name: "Basmati Rice", category: "pantry", price: 4.99, unit: "bag", image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: 167, onSale: false, description: "Aromatic basmati rice, perfect for curries." },
+            { id: 33, name: "Extra Virgin Olive Oil", category: "pantry", price: 8.99, unit: "bottle", image: "https://images.unsplash.com/photo-1474982771150-0d4a16ad5f8a?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.7, reviews: 203, onSale: true, salePrice: 6.99, description: "Premium extra virgin olive oil, cold-pressed." },
+            { id: 34, name: "Canned Tomatoes", category: "pantry", price: 2.49, unit: "can", image: "https://images.unsplash.com/photo-1526424382096-74a93e105682?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.1, reviews: 76, onSale: false, description: "Premium canned tomatoes, perfect for sauces." },
+            { id: 35, name: "All-Purpose Flour", category: "pantry", price: 3.49, unit: "bag", image: "https://images.unsplash.com/photo-1586475594344-2c2b805d5e8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.3, reviews: 112, onSale: false, description: "Versatile all-purpose flour, perfect for baking." },
+            { id: 36, name: "Granulated Sugar", category: "pantry", price: 2.99, unit: "bag", image: "https://images.unsplash.com/photo-1584589167171-541ce45f1eea?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.0, reviews: 89, onSale: false, description: "Pure granulated sugar, perfect for baking." },
+            
+            // Beverages
+            { id: 37, name: "Fresh Orange Juice", category: "beverages", price: 4.99, unit: "gallon", image: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.4, reviews: 145, onSale: false, description: "100% fresh squeezed orange juice, no added sugar." },
+            { id: 38, name: "Colombian Coffee Beans", category: "beverages", price: 9.99, unit: "bag", image: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.8, reviews: 278, onSale: true, salePrice: 7.99, description: "Premium Colombian coffee beans, medium roast." },
+            { id: 39, name: "Green Tea Bags", category: "beverages", price: 5.99, unit: "box", image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.6, reviews: 189, onSale: false, description: "Premium green tea bags, rich in antioxidants." },
+            { id: 40, name: "Sparkling Water", category: "beverages", price: 3.99, unit: "pack", image: "https://images.unsplash.com/photo-1548839140-4a6c5e0c4b4c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.2, reviews: 98, onSale: false, description: "Refreshing sparkling water, natural flavors." },
+            { id: 41, name: "Cabernet Sauvignon", category: "beverages", price: 14.99, unit: "bottle", image: "https://images.unsplash.com/photo-1566492031773-4f4e44671d66?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.7, reviews: 156, onSale: false, description: "Full-bodied Cabernet Sauvignon, aged to perfection." },
+            { id: 42, name: "Craft Beer Variety", category: "beverages", price: 12.99, unit: "6-pack", image: "https://images.unsplash.com/photo-1566738231231-5e9b7c051d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: 203, onSale: true, salePrice: 9.99, description: "Assorted craft beers, local brewery selection." },
+            
+            // Frozen
+            { id: 43, name: "Pepperoni Pizza", category: "frozen", price: 7.99, unit: "each", image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.3, reviews: 234, onSale: false, description: "Classic pepperoni pizza, ready to bake." },
+            { id: 44, name: "Vanilla Ice Cream", category: "frozen", price: 5.99, unit: "tub", image: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.9, reviews: 312, onSale: true, salePrice: 3.99, description: "Creamy vanilla ice cream, made with real vanilla." },
+            { id: 45, name: "Mixed Vegetables", category: "frozen", price: 2.99, unit: "bag", image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.1, reviews: 89, onSale: false, description: "Nutritious mixed vegetables, flash-frozen." },
+            { id: 46, name: "Mixed Berries", category: "frozen", price: 6.99, unit: "bag", image: "https://images.unsplash.com/photo-1498557850523-fd3d118b962e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: 145, onSale: false, description: "Mixed berries blend, perfect for smoothies." },
+            { id: 47, name: "Chicken Dinners", category: "frozen", price: 4.99, unit: "box", image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 3.9, reviews: 167, onSale: false, description: "Convenient frozen chicken dinners, ready to heat." },
+            { id: 48, name: "Fish Fillets", category: "frozen", price: 8.99, unit: "lb", image: "https://images.unsplash.com/photo-1588168334012-62224651c5e3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.2, reviews: 98, onSale: false, description: "Premium fish fillets, individually wrapped." }
+        ];
+
+        // App state
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        let wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+        let recentlyViewed = JSON.parse(localStorage.getItem('recentlyViewed')) || [];
+        let user = JSON.parse(localStorage.getItem('user')) || null;
+        let orders = JSON.parse(localStorage.getItem('orders')) || [];
+        let addresses = JSON.parse(localStorage.getItem('addresses')) || [];
+        
+        let currentCategory = 'all';
+        let searchTerm = '';
+        let priceFilter = 50;
+        let ratingFilter = 0;
+        let currentPage = 1;
+        const itemsPerPage = 20;
+        let checkoutStep = 1;
+        let currentOrder = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderProducts();
+            updateCartUI();
+            updateWishlistUI();
+            updateAccountUI();
+            renderRecentlyViewed();
+            
+            // Search functionality
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                searchTerm = e.target.value.toLowerCase();
+                currentPage = 1;
+                renderProducts();
+            });
+            
+            // Price range filter
+            document.getElementById('priceRange').addEventListener('input', (e) => {
+                priceFilter = e.target.value;
+                document.getElementById('priceValue').textContent = `$0 - $${priceFilter}`;
+                currentPage = 1;
+                renderProducts();
+            });
+        });
+
+        // Render products with pagination
+        function renderProducts() {
+            const grid = document.getElementById('productsGrid');
+            let filteredProducts = products;
+
+            // Filter by category
+            if (currentCategory !== 'all') {
+                filteredProducts = filteredProducts.filter(p => p.category === currentCategory);
+            }
+
+            // Filter by search term
+            if (searchTerm) {
+                filteredProducts = filteredProducts.filter(p => 
+                    p.name.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            // Filter by price
+            filteredProducts = filteredProducts.filter(p => p.price <= priceFilter);
+
+            // Filter by rating
+            if (ratingFilter > 0) {
+                filteredProducts = filteredProducts.filter(p => p.rating >= ratingFilter);
+            }
+
+            // Sort products
+            const sortValue = document.getElementById('sortSelect').value;
+            switch(sortValue) {
+                case 'price-low':
+                    filteredProducts.sort((a, b) => a.price - b.price);
+                    break;
+                case 'price-high':
+                    filteredProducts.sort((a, b) => b.price - a.price);
+                    break;
+                case 'name':
+                    filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
+                    break;
+                case 'rating':
+                    filteredProducts.sort((a, b) => b.rating - a.rating);
+                    break;
+            }
+
+            // Pagination
+            const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+            // Update product count
+            document.getElementById('productCount').textContent = `Showing ${startIndex + 1}-${Math.min(endIndex, filteredProducts.length)} of ${filteredProducts.length} products`;
+
+            // Render products
+            grid.innerHTML = paginatedProducts.map(product => `
+                <div class="product-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                    <div class="relative">
+                        <img src="${product.image}" alt="${product.name}" class="w-full h-48 object-cover cursor-pointer" onclick="viewProduct(${product.id})">
+                        ${product.onSale ? '<span class="deal-badge absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">SALE</span>' : ''}
+                        <button onclick="toggleWishlistItem(${product.id})" class="wishlist-btn absolute top-2 right-2 bg-white p-2 rounded-full shadow-md hover:shadow-lg transition ${wishlist.includes(product.id) ? 'active' : ''}">
+                            <i class="fas fa-heart"></i>
+                        </button>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-semibold text-lg mb-2 cursor-pointer hover:text-green-600" onclick="viewProduct(${product.id})">${product.name}</h4>
+                        <p class="text-gray-600 text-sm mb-2">${product.unit}</p>
+                        <div class="flex items-center mb-2">
+                            <div class="rating">
+                                ${generateStars(product.rating)}
+                            </div>
+                            <span class="text-sm text-gray-500 ml-2">(${product.reviews})</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div>
+                                ${product.onSale ? `
+                                    <span class="text-lg text-gray-400 line-through">$${product.price.toFixed(2)}</span>
+                                    <span class="text-2xl font-bold text-green-600 ml-2">$${product.salePrice.toFixed(2)}</span>
+                                ` : `
+                                    <span class="text-2xl font-bold text-green-600">$${product.price.toFixed(2)}</span>
+                                `}
+                            </div>
+                            <button onclick="addToCart(${product.id})" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                                <i class="fas fa-plus mr-1"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Render pagination
+            renderPagination(totalPages);
+        }
+
+        // Generate star rating
+        function generateStars(rating) {
+            const fullStars = Math.floor(rating);
+            const hasHalfStar = rating % 1 !== 0;
+            let stars = '';
+            
+            for (let i = 0; i < fullStars; i++) {
+                stars += '<i class="fas fa-star"></i>';
+            }
+            if (hasHalfStar) {
+                stars += '<i class="fas fa-star-half-alt"></i>';
+            }
+            for (let i = fullStars + (hasHalfStar ? 1 : 0); i < 5; i++) {
+                stars += '<i class="far fa-star"></i>';
+            }
+            
+            return stars;
+        }
+
+        // Render pagination
+        function renderPagination(totalPages) {
+            const pageNumbers = document.getElementById('pageNumbers');
+            let pages = '';
+            
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage) {
+                    pages += `<button class="px-4 py-2 bg-green-600 text-white rounded-lg">${i}</button>`;
+                } else {
+                    pages += `<button onclick="goToPage(${i})" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition">${i}</button>`;
+                }
+            }
+            
+            pageNumbers.innerHTML = pages;
+        }
+
+        // Change page
+        function changePage(direction) {
+            const totalPages = Math.ceil(products.length / itemsPerPage);
+            const newPage = currentPage + direction;
+            
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                renderProducts();
+            }
+        }
+
+        // Go to specific page
+        function goToPage(page) {
+            currentPage = page;
+            renderProducts();
+        }
+
+        // Filter by category
+        function filterByCategory(category) {
+            currentCategory = category;
+            currentPage = 1;
+            
+            // Update active category button
+            document.querySelectorAll('.category-pill').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            renderProducts();
+        }
+
+        // Filter by price
+        function filterByPrice() {
+            renderProducts();
+        }
+
+        // Filter by rating
+        function filterByRating() {
+            ratingFilter = parseInt(document.getElementById('ratingFilter').value);
+            currentPage = 1;
+            renderProducts();
+        }
+
+        // Sort products
+        function sortProducts() {
+            currentPage = 1;
+            renderProducts();
+        }
+
+        // View product details
+        function viewProduct(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+            
+            // Add to recently viewed
+            if (!recentlyViewed.includes(productId)) {
+                recentlyViewed.unshift(productId);
+                if (recentlyViewed.length > 6) {
+                    recentlyViewed.pop();
+                }
+                localStorage.setItem('recentlyViewed', JSON.stringify(recentlyViewed));
+                renderRecentlyViewed();
+            }
+            
+            // Show modal
+            document.getElementById('modalProductName').textContent = product.name;
+            document.getElementById('productModalContent').innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <img src="${product.image}" alt="${product.name}" class="w-full rounded-lg">
+                    </div>
+                    <div>
+                        <div class="mb-4">
+                            <div class="flex items-center mb-2">
+                                <div class="rating text-xl">
+                                    ${generateStars(product.rating)}
+                                </div>
+                                <span class="text-gray-500 ml-2">(${product.reviews} reviews)</span>
+                            </div>
+                            <p class="text-gray-600">${product.unit}</p>
+                        </div>
+                        
+                        <div class="mb-6">
+                            ${product.onSale ? `
+                                <div class="flex items-center">
+                                    <span class="text-3xl font-bold text-green-600">$${product.salePrice.toFixed(2)}</span>
+                                    <span class="text-xl text-gray-400 line-through ml-3">$${product.price.toFixed(2)}</span>
+                                    <span class="ml-3 bg-red-100 text-red-600 px-2 py-1 rounded text-sm font-bold">Save $${(product.price - product.salePrice).toFixed(2)}</span>
+                                </div>
+                            ` : `
+                                <span class="text-3xl font-bold text-green-600">$${product.price.toFixed(2)}</span>
+                            `}
+                        </div>
+                        
+                        <div class="mb-6">
+                            <h4 class="font-semibold mb-2">Description</h4>
+                            <p class="text-gray-600">${product.description}</p>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <h4 class="font-semibold mb-2">Nutrition Facts</h4>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <p class="text-sm text-gray-600">Serving Size: 1 ${product.unit}<br>
+                                Calories: Varies<br>
+                                Protein: Varies<br>
+                                Carbohydrates: Varies</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-4">
+                            <div class="flex items-center border rounded-lg">
+                                <button onclick="updateModalQuantity(-1)" class="px-3 py-2 hover:bg-gray-100">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <span id="modalQuantity" class="px-4 py-2 border-x">1</span>
+                                <button onclick="updateModalQuantity(1)" class="px-3 py-2 hover:bg-gray-100">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <button onclick="addToCartFromModal(${product.id})" class="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-semibold">
+                                <i class="fas fa-shopping-cart mr-2"></i> Add to Cart
+                            </button>
+                            <button onclick="toggleWishlistItem(${product.id})" class="wishlist-btn p-3 border rounded-lg hover:bg-gray-100 transition ${wishlist.includes(product.id) ? 'active' : ''}">
+                                <i class="fas fa-heart"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8">
+                    <h4 class="font-semibold mb-4">Customer Reviews</h4>
+                    <div class="space-y-4">
+                        <div class="border-b pb-4">
+                            <div class="flex items-center mb-2">
+                                <div class="rating">
+                                    ${generateStars(5)}
+                                </div>
+                                <span class="ml-2 font-semibold">John D.</span>
+                                <span class="ml-auto text-gray-500 text-sm">2 days ago</span>
+                            </div>
+                            <p class="text-gray-600">Excellent quality! Very fresh and tasty. Will definitely buy again.</p>
+                        </div>
+                        <div class="border-b pb-4">
+                            <div class="flex items-center mb-2">
+                                <div class="rating">
+                                    ${generateStars(4)}
+                                </div>
+                                <span class="ml-2 font-semibold">Sarah M.</span>
+                                <span class="ml-auto text-gray-500 text-sm">1 week ago</span>
+                            </div>
+                            <p class="text-gray-600">Good value for money. Arrived fresh and well-packaged.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('productModal').classList.add('active');
+        }
+
+        // Close product modal
+        function closeProductModal() {
+            document.getElementById('productModal').classList.remove('active');
+        }
+
+        // Update quantity in modal
+        let modalQuantity = 1;
+        function updateModalQuantity(change) {
+            modalQuantity = Math.max(1, modalQuantity + change);
+            document.getElementById('modalQuantity').textContent = modalQuantity;
+        }
+
+        // Add to cart from modal
+        function addToCartFromModal(productId) {
+            for (let i = 0; i < modalQuantity; i++) {
+                addToCart(productId, false);
+            }
+            closeProductModal();
+            showNotification(`${modalQuantity} item(s) added to cart!`);
+        }
+
+        // Add to cart
+        function addToCart(productId, showNotif = true) {
+            const product = products.find(p => p.id === productId);
+            const existingItem = cart.find(item => item.id === productId);
+
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ ...product, quantity: 1 });
+            }
+
+            saveCart();
+            updateCartUI();
+            
+            if (showNotif) {
+                showNotification('Item added to cart!');
+            }
+        }
+
+        // Update cart UI
+        function updateCartUI() {
+            const cartCount = document.getElementById('cartCount');
+            const cartItems = document.getElementById('cartItems');
+            const cartSubtotal = document.getElementById('cartSubtotal');
+            const cartTotal = document.getElementById('cartTotal');
+            const deliveryFee = document.getElementById('deliveryFee');
+
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            cartCount.textContent = totalItems;
+
+            if (cart.length === 0) {
+                cartItems.innerHTML = '<p class="text-gray-500 text-center py-8">Your cart is empty</p>';
+                deliveryFee.textContent = '$0.00';
+            } else {
+                cartItems.innerHTML = cart.map(item => `
+                    <div class="flex items-center space-x-4 mb-4 pb-4 border-b fade-in">
+                        <img src="${item.image}" alt="${item.name}" class="w-16 h-16 object-cover rounded">
+                        <div class="flex-1">
+                            <h5 class="font-semibold">${item.name}</h5>
+                            <p class="text-gray-600 text-sm">$${item.price.toFixed(2)} / ${item.unit}</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="updateQuantity(${item.id}, -1)" class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
+                                <i class="fas fa-minus text-xs"></i>
+                            </button>
+                            <span class="w-8 text-center">${item.quantity}</span>
+                            <button onclick="updateQuantity(${item.id}, 1)" class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
+                                <i class="fas fa-plus text-xs"></i>
+                            </button>
+                        </div>
+                        <button onclick="removeFromCart(${item.id})" class="text-red-500 hover:text-red-700">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `).join('');
+                
+                const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const delivery = subtotal >= 50 ? 0 : 5.99;
+                const total = subtotal + delivery;
+                
+                cartSubtotal.textContent = `$${subtotal.toFixed(2)}`;
+                deliveryFee.textContent = delivery === 0 ? 'FREE' : `$${delivery.toFixed(2)}`;
+                cartTotal.textContent = `$${total.toFixed(2)}`;
+            }
+        }
+
+        // Update quantity
+        function updateQuantity(productId, change) {
+            const item = cart.find(item => item.id === productId);
+            if (item) {
+                item.quantity += change;
+                if (item.quantity <= 0) {
+                    removeFromCart(productId);
+                } else {
+                    saveCart();
+                    updateCartUI();
+                }
+            }
+        }
+
+        // Remove from cart
+        function removeFromCart(productId) {
+            cart = cart.filter(item => item.id !== productId);
+            saveCart();
+            updateCartUI();
+        }
+
+        // Save cart to localStorage
+        function saveCart() {
+            localStorage.setItem('cart', JSON.stringify(cart));
+        }
+
+        // Toggle cart sidebar
+        function toggleCart() {
+            const sidebar = document.getElementById('cartSidebar');
+            const overlay = document.getElementById('cartOverlay');
+            
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('hidden');
+        }
+
+        // Wishlist functions
+        function toggleWishlistItem(productId) {
+            const index = wishlist.indexOf(productId);
+            if (index > -1) {
+                wishlist.splice(index, 1);
+                showNotification('Removed from wishlist');
+            } else {
+                wishlist.push(productId);
+                showNotification('Added to wishlist');
+            }
+            
+            localStorage.setItem('wishlist', JSON.stringify(wishlist));
+            updateWishlistUI();
+            renderProducts(); // Re-render to update heart icons
+        }
+
+        function updateWishlistUI() {
+            const wishlistCount = document.getElementById('wishlistCount');
+            const wishlistItems = document.getElementById('wishlistItems');
+            
+            wishlistCount.textContent = wishlist.length;
+            
+            if (wishlist.length === 0) {
+                wishlistItems.innerHTML = '<p class="text-gray-500 text-center py-8">Your wishlist is empty</p>';
+            } else {
+                wishlistItems.innerHTML = wishlist.map(productId => {
+                    const product = products.find(p => p.id === productId);
+                    return `
+                        <div class="flex items-center space-x-4 mb-4 pb-4 border-b fade-in">
+                            <img src="${product.image}" alt="${product.name}" class="w-16 h-16 object-cover rounded">
+                            <div class="flex-1">
+                                <h5 class="font-semibold">${product.name}</h5>
+                                <p class="text-gray-600 text-sm">$${product.price.toFixed(2)} / ${product.unit}</p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="addToCart(${product.id})" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition">
+                                    <i class="fas fa-cart-plus"></i>
+                                </button>
+                                <button onclick="toggleWishlistItem(${product.id})" class="text-red-500 hover:text-red-700">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function toggleWishlist() {
+            const sidebar = document.getElementById('wishlistSidebar');
+            const overlay = document.getElementById('wishlistOverlay');
+            
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('hidden');
+        }
+
+        // Account functions
+        function toggleAccount() {
+            const modal = document.getElementById('accountModal');
+            modal.classList.toggle('active');
+            updateAccountUI();
+        }
+
+        function updateAccountUI() {
+            const accountContent = document.getElementById('accountContent');
+            
+            if (user) {
+                accountContent.innerHTML = `
+                    <div class="text-center mb-6">
+                        <i class="fas fa-user-circle text-6xl text-gray-400 mb-2"></i>
+                        <h4 class="text-xl font-semibold">${user.name}</h4>
+                        <p class="text-gray-600">${user.email}</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h5 class="font-semibold mb-2">Order History</h5>
+                            ${orders.length > 0 ? `
+                                <div class="space-y-2">
+                                    ${orders.slice(0, 3).map(order => `
+                                        <div class="flex justify-between items-center text-sm">
+                                            <span>Order #${order.id}</span>
+                                            <span class="font-semibold">$${order.total.toFixed(2)}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <button onclick="showUserDashboard()" class="text-green-600 hover:text-green-700 text-sm mt-2">View all orders</button>
+                            ` : '<p class="text-gray-500 text-sm">No orders yet</p>'}
+                        </div>
+                        
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h5 class="font-semibold mb-2">Account Settings</h5>
+                            <button onclick="showUserDashboard()" class="w-full text-left py-2 hover:text-green-600">Edit Profile</button>
+                            <button onclick="showUserDashboard()" class="w-full text-left py-2 hover:text-green-600">Change Password</button>
+                            <button onclick="showUserDashboard()" class="w-full text-left py-2 hover:text-green-600">Payment Methods</button>
+                        </div>
+                        
+                        <button onclick="logout()" class="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition">
+                            Logout
+                        </button>
+                    </div>
+                `;
+            } else {
+                accountContent.innerHTML = `
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-semibold mb-2">Login</h4>
+                            <form onsubmit="login(event)" class="space-y-3">
+                                <input type="email" placeholder="Email" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-green-500">
+                                <input type="password" placeholder="Password" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-green-500">
+                                <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">
+                                    Login
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <div class="text-center">
+                            <span class="text-gray-500">or</span>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold mb-2">Register</h4>
+                            <form onsubmit="register(event)" class="space-y-3">
+                                <input type="text" placeholder="Full Name" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-green-500">
+                                <input type="email" placeholder="Email" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-green-500">
+                                <input type="password" placeholder="Password" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-green-500">
+                                <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">
+                                    Register
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function login(event) {
+            event.preventDefault();
+            const email = event.target.querySelector('input[type="email"]').value;
+            user = { name: 'John Doe', email: email, phone: '(555) 123-4567' };
+            localStorage.setItem('user', JSON.stringify(user));
+            updateAccountUI();
+            showNotification('Login successful!');
+        }
+
+        function register(event) {
+            event.preventDefault();
+            const name = event.target.querySelector('input[type="text"]').value;
+            const email = event.target.querySelector('input[type="email"]').value;
+            user = { name: name, email: email, phone: '(555) 123-4567' };
+            localStorage.setItem('user', JSON.stringify(user));
+            updateAccountUI();
+            showNotification('Registration successful!');
+        }
+
+        function logout() {
+            user = null;
+            localStorage.removeItem('user');
+            updateAccountUI();
+            showNotification('Logged out successfully');
+        }
+
+        // Recently viewed
+        function renderRecentlyViewed() {
+            const container = document.getElementById('recentlyViewed');
+            
+            if (recentlyViewed.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 col-span-full text-center">No recently viewed items</p>';
+            } else {
+                container.innerHTML = recentlyViewed.map(productId => {
+                    const product = products.find(p => p.id === productId);
+                    return `
+                        <div class="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer" onclick="viewProduct(${product.id})">
+                            <img src="${product.image}" alt="${product.name}" class="w-full h-24 object-cover">
+                            <div class="p-2">
+                                <h5 class="text-sm font-semibold truncate">${product.name}</h5>
+                                <p class="text-green-600 font-bold">$${product.price.toFixed(2)}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Start checkout process
+        function startCheckout() {
+            if (cart.length === 0) {
+                alert('Your cart is empty!');
+                return;
+            }
+            
+            if (!user) {
+                alert('Please login to checkout');
+                toggleAccount();
+                return;
+            }
+            
+            checkoutStep = 1;
+            document.getElementById('checkoutModal').classList.add('active');
+            renderCheckoutStep();
+        }
+
+        // Close checkout modal
+        function closeCheckout() {
+            document.getElementById('checkoutModal').classList.remove('active');
+        }
+
+        // Render checkout step
+        function renderCheckoutStep() {
+            // Update step indicators
+            for (let i = 1; i <= 3; i++) {
+                const step = document.getElementById(`checkoutStep${i}`);
+                if (i < checkoutStep) {
+                    step.classList.add('completed');
+                    step.classList.remove('active');
+                } else if (i === checkoutStep) {
+                    step.classList.add('active');
+                    step.classList.remove('completed');
+                } else {
+                    step.classList.remove('active', 'completed');
+                }
+            }
+            
+            const checkoutContent = document.getElementById('checkoutContent');
+            
+            if (checkoutStep === 1) {
+                // Address step
+                checkoutContent.innerHTML = `
+                    <h4 class="text-xl font-semibold mb-4">Delivery Address</h4>
+                    
+                    ${addresses.length > 0 ? `
+                        <div class="mb-6">
+                            <h5 class="font-medium mb-2">Saved Addresses</h5>
+                            <div class="space-y-3">
+                                ${addresses.map((address, index) => `
+                                    <div class="border rounded-lg p-4 cursor-pointer hover:border-green-500 transition ${index === 0 ? 'border-green-500' : ''}" onclick="selectAddress(${index})">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h6 class="font-medium">${address.type.charAt(0).toUpperCase() + address.type.slice(1)}</h6>
+                                                <p class="text-gray-600">${address.address}</p>
+                                                <p class="text-gray-600">${address.city}, ${address.postal}</p>
+                                            </div>
+                                            ${index === 0 ? '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Selected</span>' : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="mb-6">
+                        <h5 class="font-medium mb-2">Add New Address</h5>
+                        <form onsubmit="addCheckoutAddress(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Address Type</label>
+                                <select id="checkoutAddressType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500">
+                                    <option value="home">Home</option>
+                                    <option value="work">Work</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Full Address</label>
+                                <textarea id="checkoutFullAddress" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500" required></textarea>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                                    <input type="text" id="checkoutAddressCity" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+                                    <input type="text" id="checkoutAddressPostal" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">Add Address</button>
+                        </form>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <button onclick="closeCheckout()" class="border border-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-100 transition">Cancel</button>
+                        <button onclick="nextCheckoutStep()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">Continue to Payment</button>
+                    </div>
+                `;
+            } else if (checkoutStep === 2) {
+                // Payment step
+                checkoutContent.innerHTML = `
+                    <h4 class="text-xl font-semibold mb-4">Payment Method</h4>
+                    
+                    <div class="mb-6">
+                        <h5 class="font-medium mb-2">Select Payment Method</h5>
+                        <div class="space-y-3">
+                            <div class="border rounded-lg p-4 cursor-pointer hover:border-green-500 transition border-green-500" onclick="selectPayment('card')">
+                                <div class="flex items-center">
+                                    <i class="fas fa-credit-card text-green-600 mr-3"></i>
+                                    <div>
+                                        <h6 class="font-medium">Credit/Debit Card</h6>
+                                        <p class="text-gray-600 text-sm">Pay with your credit or debit card</p>
+                                    </div>
+                                    <i class="fas fa-check-circle text-green-600 ml-auto"></i>
+                                </div>
+                            </div>
+                            <div class="border rounded-lg p-4 cursor-pointer hover:border-green-500 transition" onclick="selectPayment('paypal')">
+                                <div class="flex items-center">
+                                    <i class="fab fa-paypal text-blue-600 mr-3"></i>
+                                    <div>
+                                        <h6 class="font-medium">PayPal</h6>
+                                        <p class="text-gray-600 text-sm">Pay with your PayPal account</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="border rounded-lg p-4 cursor-pointer hover:border-green-500 transition" onclick="selectPayment('cod')">
+                                <div class="flex items-center">
+                                    <i class="fas fa-money-bill-wave text-green-600 mr-3"></i>
+                                    <div>
+                                        <h6 class="font-medium">Cash on Delivery</h6>
+                                        <p class="text-gray-600 text-sm">Pay when you receive your order</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h5 class="font-medium mb-2">Card Details</h5>
+                        <form onsubmit="saveCardDetails(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Card Number</label>
+                                <input type="text" placeholder="1234 5678 9012 3456" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500" required>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
+                                    <input type="text" placeholder="MM/YY" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">CVV</label>
+                                    <input type="text" placeholder="123" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500" required>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Name on Card</label>
+                                <input type="text" placeholder="John Doe" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500" required>
+                            </div>
+                            <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">Save Card</button>
+                        </form>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <button onclick="prevCheckoutStep()" class="border border-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-100 transition">Back</button>
+                        <button onclick="nextCheckoutStep()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">Review Order</button>
+                    </div>
+                `;
+            } else if (checkoutStep === 3) {
+                // Review step
+                const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const delivery = subtotal >= 50 ? 0 : 5.99;
+                const total = subtotal + delivery;
+                
+                checkoutContent.innerHTML = `
+                    <h4 class="text-xl font-semibold mb-4">Review Your Order</h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <h5 class="font-medium mb-2">Delivery Address</h5>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                ${addresses.length > 0 ? `
+                                    <h6 class="font-medium">${addresses[0].type.charAt(0).toUpperCase() + addresses[0].type.slice(1)}</h6>
+                                    <p class="text-gray-600">${addresses[0].address}</p>
+                                    <p class="text-gray-600">${addresses[0].city}, ${addresses[0].postal}</p>
+                                ` : '<p class="text-gray-600">No address selected</p>'}
+                            </div>
+                        </div>
+                        <div>
+                            <h5 class="font-medium mb-2">Payment Method</h5>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <div class="flex items-center">
+                                    <i class="fas fa-credit-card text-green-600 mr-3"></i>
+                                    <div>
+                                        <h6 class="font-medium">Credit/Debit Card</h6>
+                                        <p class="text-gray-600 text-sm">**** **** **** 1234</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h5 class="font-medium mb-2">Order Items</h5>
+                        <div class="border rounded-lg overflow-hidden">
+                            ${cart.map(item => `
+                                <div class="flex items-center p-4 border-b">
+                                    <img src="${item.image}" alt="${item.name}" class="w-16 h-16 object-cover rounded mr-4">
+                                    <div class="flex-1">
+                                        <h6 class="font-medium">${item.name}</h6>
+                                        <p class="text-gray-600 text-sm">${item.unit} x ${item.quantity}</p>
+                                    </div>
+                                    <div class="font-medium">$${(item.price * item.quantity).toFixed(2)}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h5 class="font-medium mb-2">Order Summary</h5>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <div class="flex justify-between mb-2">
+                                <span>Subtotal:</span>
+                                <span>$${subtotal.toFixed(2)}</span>
+                            </div>
+                            <div class="flex justify-between mb-2">
+                                <span>Delivery:</span>
+                                <span>${delivery === 0 ? 'FREE' : '$' + delivery.toFixed(2)}</span>
+                            </div>
+                            <div class="flex justify-between font-bold text-lg pt-2 border-t">
+                                <span>Total:</span>
+                                <span>$${total.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <button onclick="prevCheckoutStep()" class="border border-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-100 transition">Back</button>
+                        <button onclick="placeOrder()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">Place Order</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Navigation between checkout steps
+        function nextCheckoutStep() {
+            if (checkoutStep < 3) {
+                checkoutStep++;
+                renderCheckoutStep();
+            }
+        }
+
+        function prevCheckoutStep() {
+            if (checkoutStep > 1) {
+                checkoutStep--;
+                renderCheckoutStep();
+            }
+        }
+
+        // Select address in checkout
+        function selectAddress(index) {
+            // Move selected address to first position
+            const selectedAddress = addresses[index];
+            addresses.splice(index, 1);
+            addresses.unshift(selectedAddress);
+            localStorage.setItem('addresses', JSON.stringify(addresses));
+            renderCheckoutStep();
+        }
+
+        // Add address in checkout
+        function addCheckoutAddress(event) {
+            event.preventDefault();
+            
+            const address = {
+                type: document.getElementById('checkoutAddressType').value,
+                address: document.getElementById('checkoutFullAddress').value,
+                city: document.getElementById('checkoutAddressCity').value,
+                postal: document.getElementById('checkoutAddressPostal').value
+            };
+            
+            addresses.unshift(address);
+            localStorage.setItem('addresses', JSON.stringify(addresses));
+            renderCheckoutStep();
+            showNotification('Address added successfully!');
+        }
+
+        // Select payment method
+        function selectPayment(method) {
+            // Update UI to show selected payment method
+            const paymentOptions = document.querySelectorAll('#checkoutContent .border');
+            paymentOptions.forEach(option => {
+                option.classList.remove('border-green-500');
+                const checkIcon = option.querySelector('.fa-check-circle');
+                if (checkIcon) {
+                    checkIcon.remove();
+                }
+            });
+            
+            event.currentTarget.classList.add('border-green-500');
+            const checkIcon = document.createElement('i');
+            checkIcon.className = 'fas fa-check-circle text-green-600 ml-auto';
+            event.currentTarget.querySelector('.flex').appendChild(checkIcon);
+        }
+
+        // Save card details
+        function saveCardDetails(event) {
+            event.preventDefault();
+            showNotification('Card details saved successfully!');
+        }
+
+        // Place order
+        function placeOrder() {
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const delivery = subtotal >= 50 ? 0 : 5.99;
+            const total = subtotal + delivery;
+            
+            const order = {
+                id: Date.now(),
+                items: [...cart],
+                subtotal: subtotal,
+                delivery: delivery,
+                total: total,
+                date: new Date().toISOString(),
+                status: 'confirmed',
+                address: addresses.length > 0 ? addresses[0] : null,
+                estimatedDelivery: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() // 2 days from now
+            };
+            
+            orders.unshift(order);
+            localStorage.setItem('orders', JSON.stringify(orders));
+            
+            currentOrder = order;
+            cart = [];
+            saveCart();
+            updateCartUI();
+            closeCheckout();
+            showOrderConfirmation();
+        }
+
+        // Show order confirmation
+        function showOrderConfirmation() {
+            document.getElementById('mainContent').style.display = 'none';
+            document.getElementById('userDashboard').style.display = 'none';
+            document.getElementById('orderConfirmation').style.display = 'block';
+            document.getElementById('orderTracker').style.display = 'none';
+            
+            document.getElementById('confirmationOrderId').textContent = currentOrder.id;
+            document.getElementById('confirmationTotal').textContent = `$${currentOrder.total.toFixed(2)}`;
+            
+            // Order items
+            document.getElementById('confirmationOrderItems').innerHTML = currentOrder.items.map(item => `
+                <div class="flex justify-between">
+                    <span>${item.name} x ${item.quantity}</span>
+                    <span>$${(item.price * item.quantity).toFixed(2)}</span>
+                </div>
+            `).join('');
+            
+            // Shipping info
+            if (currentOrder.address) {
+                document.getElementById('confirmationShippingInfo').innerHTML = `
+                    <p>${currentOrder.address.type.charAt(0).toUpperCase() + currentOrder.address.type.slice(1)}</p>
+                    <p>${currentOrder.address.address}</p>
+                    <p>${currentOrder.address.city}, ${currentOrder.address.postal}</p>
+                `;
+            } else {
+                document.getElementById('confirmationShippingInfo').innerHTML = '<p>No address provided</p>';
+            }
+            
+            // Payment info
+            document.getElementById('confirmationPaymentInfo').innerHTML = `
+                <p>Credit/Debit Card</p>
+                <p>**** **** **** 1234</p>
+            `;
+        }
+
+        // Show order tracker
+        function showOrderTracker() {
+            document.getElementById('mainContent').style.display = 'none';
+            document.getElementById('userDashboard').style.display = 'none';
+            document.getElementById('orderConfirmation').style.display = 'none';
+            document.getElementById('orderTracker').style.display = 'block';
+            
+            document.getElementById('trackerOrderId').textContent = currentOrder.id;
+            document.getElementById('trackerOrderDate').textContent = new Date(currentOrder.date).toLocaleDateString();
+            
+            // Update order status steps
+            const statusSteps = ['confirmed', 'processing', 'shipped', 'delivered'];
+            const currentStatusIndex = statusSteps.indexOf(currentOrder.status);
+            
+            for (let i = 1; i <= 4; i++) {
+                const step = document.getElementById(`step${i}`);
+                if (i <= currentStatusIndex + 1) {
+                    step.classList.add('active');
+                } else {
+                    step.classList.remove('active');
+                }
+            }
+            
+            // Status message
+            const statusMessages = {
+                'confirmed': 'Your order has been confirmed and is being processed.',
+                'processing': 'Your order is being prepared for shipment.',
+                'shipped': 'Your order has been shipped and is on its way.',
+                'delivered': 'Your order has been delivered. Enjoy!'
+            };
+            
+            document.getElementById('trackerStatusMessage').innerHTML = `
+                <p class="text-blue-700">${statusMessages[currentOrder.status]}</p>
+            `;
+            
+            // Delivery address
+            if (currentOrder.address) {
+                document.getElementById('trackerDeliveryAddress').innerHTML = `
+                    <p>${currentOrder.address.type.charAt(0).toUpperCase() + currentOrder.address.type.slice(1)}</p>
+                    <p>${currentOrder.address.address}</p>
+                    <p>${currentOrder.address.city}, ${currentOrder.address.postal}</p>
+                `;
+            } else {
+                document.getElementById('trackerDeliveryAddress').innerHTML = '<p>No address provided</p>';
+            }
+            
+            // Estimated delivery
+            document.getElementById('trackerEstimatedDelivery').innerHTML = `
+                <p>${new Date(currentOrder.estimatedDelivery).toLocaleDateString()}</p>
+                <p class="text-sm text-gray-500">by 5:00 PM</p>
+            `;
+            
+            // Order items
+            document.getElementById('trackerOrderItems').innerHTML = currentOrder.items.map(item => `
+                <div class="flex items-center p-3 border rounded-lg">
+                    <img src="${item.image}" alt="${item.name}" class="w-12 h-12 object-cover rounded mr-3">
+                    <div class="flex-1">
+                        <h6 class="font-medium">${item.name}</h6>
+                        <p class="text-gray-600 text-sm">${item.unit} x ${item.quantity}</p>
+                    </div>
+                    <div class="font-medium">$${(item.price * item.quantity).toFixed(2)}</div>
+                </div>
+            `).join('');
+        }
+
+        // Show main content
+        function showMainContent() {
+            document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('userDashboard').style.display = 'none';
+            document.getElementById('orderConfirmation').style.display = 'none';
+            document.getElementById('orderTracker').style.display = 'none';
+        }
+
+        // Show user dashboard
+        function showUserDashboard() {
+            document.getElementById('mainContent').style.display = 'none';
+            document.getElementById('userDashboard').style.display = 'block';
+            document.getElementById('orderConfirmation').style.display = 'none';
+            document.getElementById('orderTracker').style.display = 'none';
+            
+            // Update dashboard stats
+            document.getElementById('totalOrders').textContent = orders.length;
+            document.getElementById('pendingOrders').textContent = orders.filter(o => o.status !== 'delivered').length;
+            document.getElementById('wishlistItemsCount').textContent = wishlist.length;
+            
+            // Update orders list
+            if (orders.length > 0) {
+                document.getElementById('ordersList').innerHTML = orders.map(order => `
+                    <div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h4 class="font-semibold">Order #${order.id}</h4>
+                                <p class="text-gray-600 text-sm">${new Date(order.date).toLocaleDateString()}</p>
+                            </div>
+                            <span class="px-2 py-1 rounded text-xs font-semibold ${
+                                order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                                order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-gray-100 text-gray-800'
+                            }">${order.status.charAt(0).toUpperCase() + order.status.slice(1)}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <p class="text-gray-600">${order.items.length} items</p>
+                            <div class="text-right">
+                                <p class="font-semibold">$${order.total.toFixed(2)}</p>
+                                <button onclick="trackOrder(${order.id})" class="text-green-600 hover:text-green-700 text-sm">Track Order</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('ordersList').innerHTML = '<p class="text-gray-500 text-center py-4">No orders yet</p>';
+            }
+            
+            // Update account form
+            if (user) {
+                document.getElementById('accountName').value = user.name;
+                document.getElementById('accountEmail').value = user.email;
+                document.getElementById('accountPhone').value = user.phone || '';
+            }
+            
+            // Update addresses list
+            if (addresses.length > 0) {
+                document.getElementById('addressesList').innerHTML = addresses.map((address, index) => `
+                    <div class="border rounded-lg p-4">
+                        <div class="flex justify-between items-start mb-2">
+                            <h5 class="font-medium">${address.type.charAt(0).toUpperCase() + address.type.slice(1)}</h5>
+                            <button onclick="removeAddress(${index})" class="text-red-500 hover:text-red-700">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        <p class="text-gray-600">${address.address}</p>
+                        <p class="text-gray-600">${address.city}, ${address.postal}</p>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('addressesList').innerHTML = '<p class="text-gray-500 text-center py-4">No saved addresses</p>';
+            }
+        }
+
+        // Track specific order
+        function trackOrder(orderId) {
+            currentOrder = orders.find(o => o.id === orderId);
+            if (currentOrder) {
+                showOrderTracker();
+            }
+        }
+
+        // Switch dashboard tabs
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if (btn.getAttribute('data-tab') === tabName) {
+                    btn.classList.add('border-green-600', 'text-green-600');
+                    btn.classList.remove('border-transparent', 'text-gray-600');
+                } else {
+                    btn.classList.remove('border-green-600', 'text-green-600');
+                    btn.classList.add('border-transparent', 'text-gray-600');
+                }
+            });
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${tabName}Tab`).classList.add('active');
+        }
+
+        // Update account
+        function updateAccount(event) {
+            event.preventDefault();
+            
+            if (user) {
+                user.name = document.getElementById('accountName').value;
+                user.email = document.getElementById('accountEmail').value;
+                user.phone = document.getElementById('accountPhone').value;
+                
+                const password = document.getElementById('accountPassword').value;
+                if (password) {
+                    // In a real app, you would hash the password
+                    user.password = password;
+                }
+                
+                localStorage.setItem('user', JSON.stringify(user));
+                showNotification('Account updated successfully!');
+            }
+        }
+
+        // Show add address form
+        function showAddAddressForm() {
+            document.getElementById('addAddressForm').style.display = 'block';
+        }
+
+        // Hide add address form
+        function hideAddAddressForm() {
+            document.getElementById('addAddressForm').style.display = 'none';
+        }
+
+        // Add address
+        function addAddress(event) {
+            event.preventDefault();
+            
+            const address = {
+                type: document.getElementById('addressType').value,
+                address: document.getElementById('fullAddress').value,
+                city: document.getElementById('addressCity').value,
+                postal: document.getElementById('addressPostal').value
+            };
+            
+            addresses.push(address);
+            localStorage.setItem('addresses', JSON.stringify(addresses));
+            hideAddAddressForm();
+            showUserDashboard(); // Refresh dashboard
+            showNotification('Address added successfully!');
+        }
+
+        // Remove address
+        function removeAddress(index) {
+            if (confirm('Are you sure you want to remove this address?')) {
+                addresses.splice(index, 1);
+                localStorage.setItem('addresses', JSON.stringify(addresses));
+                showUserDashboard(); // Refresh dashboard
+                showNotification('Address removed successfully!');
+            }
+        }
+
+        // Newsletter subscription
+        function subscribeNewsletter(event) {
+            event.preventDefault();
+            const email = event.target.querySelector('input[type="email"]').value;
+            showNotification('Successfully subscribed to newsletter!');
+            event.target.reset();
+        }
+
+        // Show notification
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notificationText');
+            
+            notificationText.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
