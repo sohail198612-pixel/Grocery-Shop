@@ -192,55 +192,101 @@
         }
         .map-container {
             position: relative;
-            height: 300px;
+            height: 400px;
             background: linear-gradient(to bottom, #e0f2fe, #bae6fd);
             border-radius: 12px;
             overflow: hidden;
+            margin-bottom: 20px;
         }
         .map-road {
             position: absolute;
             top: 50%;
-            left: 0;
-            right: 0;
-            height: 20px;
+            left: 5%;
+            right: 5%;
+            height: 24px;
             background: #9ca3af;
             transform: translateY(-50%);
             z-index: 1;
+            border-radius: 12px;
         }
         .map-building {
             position: absolute;
-            width: 60px;
-            height: 80px;
+            width: 80px;
+            height: 100px;
             background: #6b7280;
-            border-radius: 4px;
+            border-radius: 6px;
             z-index: 2;
         }
         .map-building.warehouse {
-            top: 20%;
-            left: 10%;
+            top: 15%;
+            left: 5%;
         }
         .map-building.customer {
+            top: 15%;
+            right: 5%;
+        }
+        .map-tree {
+            position: absolute;
+            width: 40px;
+            height: 60px;
+            z-index: 2;
+        }
+        .map-tree::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 30px;
+            background: #92400e;
+            border-radius: 4px;
+        }
+        .map-tree::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 40px;
+            background: #16a34a;
+            border-radius: 50%;
+        }
+        .map-tree.tree1 {
             top: 20%;
-            right: 10%;
+            left: 25%;
+        }
+        .map-tree.tree2 {
+            top: 25%;
+            left: 45%;
+        }
+        .map-tree.tree3 {
+            top: 18%;
+            left: 65%;
+        }
+        .map-tree.tree4 {
+            top: 22%;
+            left: 80%;
         }
         .delivery-truck {
             position: absolute;
             top: 50%;
-            left: 10%;
+            left: 5%;
             transform: translateY(-50%);
             z-index: 3;
-            transition: left 2s ease-in-out;
-            font-size: 24px;
+            transition: left 4s linear;
+            font-size: 28px;
             color: #dc2626;
         }
         .delivery-person {
             position: absolute;
             top: 50%;
-            left: 10%;
+            left: 5%;
             transform: translateY(-50%);
             z-index: 3;
-            transition: left 2s ease-in-out;
-            font-size: 24px;
+            transition: left 4s linear;
+            font-size: 28px;
             color: #dc2626;
             display: none;
         }
@@ -253,38 +299,76 @@
         .map-label {
             position: absolute;
             background: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 14px;
             font-weight: 600;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             z-index: 4;
         }
         .map-label.warehouse {
-            top: 10%;
-            left: 10%;
+            top: 5%;
+            left: 5%;
         }
         .map-label.customer {
-            top: 10%;
-            right: 10%;
+            top: 5%;
+            right: 5%;
         }
         .progress-bar {
-            height: 8px;
+            height: 12px;
             background: #e5e7eb;
-            border-radius: 4px;
+            border-radius: 6px;
             overflow: hidden;
-            margin-top: 8px;
+            margin-top: 12px;
         }
         .progress-fill {
             height: 100%;
             background: #10b981;
-            border-radius: 4px;
-            transition: width 2s ease-in-out;
+            border-radius: 6px;
+            transition: width 4s linear;
         }
         .eta-counter {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 600;
             color: #10b981;
+        }
+        .map-route {
+            position: absolute;
+            top: 50%;
+            left: 5%;
+            right: 5%;
+            height: 2px;
+            background: rgba(16, 185, 129, 0.3);
+            transform: translateY(-50%);
+            z-index: 0;
+            border-radius: 1px;
+        }
+        .map-checkpoint {
+            position: absolute;
+            top: 50%;
+            width: 12px;
+            height: 12px;
+            background: #10b981;
+            border-radius: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
+            opacity: 0.3;
+        }
+        .map-checkpoint.checkpoint1 {
+            left: 25%;
+        }
+        .map-checkpoint.checkpoint2 {
+            left: 45%;
+        }
+        .map-checkpoint.checkpoint3 {
+            left: 65%;
+        }
+        .map-checkpoint.checkpoint4 {
+            left: 85%;
+        }
+        .map-checkpoint.active {
+            opacity: 1;
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.3);
         }
     </style>
 </head>
@@ -793,9 +877,18 @@ Whole Wheat Bread - 1 loaf" required class="w-full px-4 py-2 border border-gray-
                 <div class="mb-6">
                     <h4 class="font-semibold mb-2">Live Tracking</h4>
                     <div class="map-container">
+                        <div class="map-route"></div>
                         <div class="map-road"></div>
                         <div class="map-building warehouse"></div>
                         <div class="map-building customer"></div>
+                        <div class="map-tree tree1"></div>
+                        <div class="map-tree tree2"></div>
+                        <div class="map-tree tree3"></div>
+                        <div class="map-tree tree4"></div>
+                        <div class="map-checkpoint checkpoint1"></div>
+                        <div class="map-checkpoint checkpoint2"></div>
+                        <div class="map-checkpoint checkpoint3"></div>
+                        <div class="map-checkpoint checkpoint4"></div>
                         <div class="map-label warehouse">Warehouse</div>
                         <div class="map-label customer">Your Address</div>
                         <div id="deliveryTruck" class="delivery-truck">
@@ -808,7 +901,7 @@ Whole Wheat Bread - 1 loaf" required class="w-full px-4 py-2 border border-gray-
                     <div class="mt-4">
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-sm font-medium">Delivery Progress</span>
-                            <span id="etaCounter" class="eta-counter">ETA: 30 mins</span>
+                            <span id="etaCounter" class="eta-counter">ETA: 45 mins</span>
                         </div>
                         <div class="progress-bar">
                             <div id="progressFill" class="progress-fill" style="width: 0%"></div>
@@ -1193,7 +1286,7 @@ Whole Wheat Bread - 1 loaf" required class="w-full px-4 py-2 border border-gray-
                 date: new Date().toISOString(),
                 status: 'confirmed',
                 progress: 0,
-                eta: 30 // 30 minutes ETA
+                eta: 45 // 45 minutes ETA
             };
             
             // Save order to localStorage
@@ -2339,7 +2432,7 @@ Whole Wheat Bread - 1 loaf" required class="w-full px-4 py-2 border border-gray-
                 date: new Date().toISOString(),
                 status: 'confirmed',
                 progress: 0,
-                eta: 30, // 30 minutes ETA
+                eta: 45, // 45 minutes ETA
                 address: addresses.length > 0 ? addresses[0] : null,
                 estimatedDelivery: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() // 2 days from now
             };
@@ -2467,19 +2560,24 @@ Whole Wheat Bread - 1 loaf" required class="w-full px-4 py-2 border border-gray-
             }
             
             // Reset UI
-            document.getElementById('deliveryTruck').style.left = '10%';
+            document.getElementById('deliveryTruck').style.left = '5%';
             document.getElementById('deliveryTruck').classList.remove('active');
             document.getElementById('deliveryPerson').classList.remove('active');
             document.getElementById('progressFill').style.width = '0%';
-            document.getElementById('etaCounter').textContent = 'ETA: 30 mins';
+            document.getElementById('etaCounter').textContent = 'ETA: 45 mins';
+            
+            // Reset checkpoints
+            document.querySelectorAll('.map-checkpoint').forEach(checkpoint => {
+                checkpoint.classList.remove('active');
+            });
             
             // Start tracking simulation
             let progress = 0;
-            let eta = 30;
+            let eta = 45;
             
             orderTrackingInterval = setInterval(() => {
-                progress += 10;
-                eta -= 3;
+                progress += 5; // Slower progress increment
+                eta -= 5; // 5 minutes less per update
                 
                 if (progress > 100) progress = 100;
                 if (eta < 0) eta = 0;
@@ -2488,18 +2586,32 @@ Whole Wheat Bread - 1 loaf" required class="w-full px-4 py-2 border border-gray-
                 document.getElementById('progressFill').style.width = progress + '%';
                 document.getElementById('etaCounter').textContent = `ETA: ${eta} mins`;
                 
-                // Update truck position
-                const truckPosition = 10 + (progress * 0.8); // Move from 10% to 90%
+                // Update truck position - slower movement
+                const truckPosition = 5 + (progress * 0.9); // Move from 5% to 95%
                 document.getElementById('deliveryTruck').style.left = truckPosition + '%';
                 
+                // Update checkpoints based on progress
+                if (progress >= 20) {
+                    document.querySelector('.checkpoint1').classList.add('active');
+                }
+                if (progress >= 40) {
+                    document.querySelector('.checkpoint2').classList.add('active');
+                }
+                if (progress >= 60) {
+                    document.querySelector('.checkpoint3').classList.add('active');
+                }
+                if (progress >= 80) {
+                    document.querySelector('.checkpoint4').classList.add('active');
+                }
+                
                 // Update order status based on progress
-                if (progress >= 25 && currentOrder.status === 'confirmed') {
+                if (progress >= 20 && currentOrder.status === 'confirmed') {
                     currentOrder.status = 'processing';
                     updateOrderStatus();
                 } else if (progress >= 50 && currentOrder.status === 'processing') {
                     currentOrder.status = 'shipped';
                     updateOrderStatus();
-                } else if (progress >= 90 && currentOrder.status === 'shipped') {
+                } else if (progress >= 85 && currentOrder.status === 'shipped') {
                     currentOrder.status = 'delivered';
                     updateOrderStatus();
                     
@@ -2519,7 +2631,7 @@ Whole Wheat Bread - 1 loaf" required class="w-full px-4 py-2 border border-gray-
                     clearInterval(orderTrackingInterval);
                     showNotification('Order delivered successfully!');
                 }
-            }, 2000); // Update every 2 seconds
+            }, 4000); // Update every 4 seconds (slower)
         }
 
         // Update order status UI
