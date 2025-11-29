@@ -190,6 +190,102 @@
         .auth-switch a:hover {
             text-decoration: underline;
         }
+        .map-container {
+            position: relative;
+            height: 300px;
+            background: linear-gradient(to bottom, #e0f2fe, #bae6fd);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .map-road {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: #9ca3af;
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+        .map-building {
+            position: absolute;
+            width: 60px;
+            height: 80px;
+            background: #6b7280;
+            border-radius: 4px;
+            z-index: 2;
+        }
+        .map-building.warehouse {
+            top: 20%;
+            left: 10%;
+        }
+        .map-building.customer {
+            top: 20%;
+            right: 10%;
+        }
+        .delivery-truck {
+            position: absolute;
+            top: 50%;
+            left: 10%;
+            transform: translateY(-50%);
+            z-index: 3;
+            transition: left 2s ease-in-out;
+            font-size: 24px;
+            color: #dc2626;
+        }
+        .delivery-person {
+            position: absolute;
+            top: 50%;
+            left: 10%;
+            transform: translateY(-50%);
+            z-index: 3;
+            transition: left 2s ease-in-out;
+            font-size: 24px;
+            color: #dc2626;
+            display: none;
+        }
+        .delivery-person.active {
+            display: block;
+        }
+        .delivery-truck.active {
+            display: none;
+        }
+        .map-label {
+            position: absolute;
+            background: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            z-index: 4;
+        }
+        .map-label.warehouse {
+            top: 10%;
+            left: 10%;
+        }
+        .map-label.customer {
+            top: 10%;
+            right: 10%;
+        }
+        .progress-bar {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #10b981;
+            border-radius: 4px;
+            transition: width 2s ease-in-out;
+        }
+        .eta-counter {
+            font-size: 18px;
+            font-weight: 600;
+            color: #10b981;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -679,7 +775,7 @@ Whole Wheat Bread - 1 loaf" required class="w-full px-4 py-2 border border-gray-
 
     <!-- Order Tracker -->
     <div id="orderTracker" class="container mx-auto px-4 py-8" style="display: none;">
-        <div class="bg-white rounded-lg shadow-md p-8 max-w-3xl mx-auto">
+        <div class="bg-white rounded-lg shadow-md p-8 max-w-4xl mx-auto">
             <div class="flex items-center justify-between mb-8">
                 <h2 class="text-2xl font-bold">Order Tracker</h2>
                 <button onclick="showMainContent()" class="text-green-600 hover:text-green-700">
@@ -692,6 +788,34 @@ Whole Wheat Bread - 1 loaf" required class="w-full px-4 py-2 border border-gray-
                     <h3 class="text-lg font-semibold">Order #<span id="trackerOrderId"></span></h3>
                     <span class="text-gray-600">Placed on <span id="trackerOrderDate"></span></span>
                 </div>
+                
+                <!-- Real-time Map Simulation -->
+                <div class="mb-6">
+                    <h4 class="font-semibold mb-2">Live Tracking</h4>
+                    <div class="map-container">
+                        <div class="map-road"></div>
+                        <div class="map-building warehouse"></div>
+                        <div class="map-building customer"></div>
+                        <div class="map-label warehouse">Warehouse</div>
+                        <div class="map-label customer">Your Address</div>
+                        <div id="deliveryTruck" class="delivery-truck">
+                            <i class="fas fa-truck"></i>
+                        </div>
+                        <div id="deliveryPerson" class="delivery-person">
+                            <i class="fas fa-walking"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium">Delivery Progress</span>
+                            <span id="etaCounter" class="eta-counter">ETA: 30 mins</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="order-status flex justify-between mb-8">
                     <div id="step1" class="step active text-center">
                         <i class="fas fa-check-circle"></i>
@@ -923,68 +1047,68 @@ Whole Wheat Bread - 1 loaf" required class="w-full px-4 py-2 border border-gray-
         // Extended product data with real names and image links
         const products = [
             // Fruits
-            { id: 1, name: "Fresh Red Apples", category: "fruits", price: 2.99, unit: "lb", image: "https://source.unsplash.com/featured/?apple,red", rating: 4.5, reviews: 128, onSale: false, description: "Crisp and juicy red apples, perfect for snacking or baking." },
-            { id: 2, name: "Organic Bananas", category: "fruits", price: 0.59, unit: "lb", image: "https://source.unsplash.com/featured/?banana", rating: 4.2, reviews: 95, onSale: true, salePrice: 0.49, description: "Sweet and creamy organic bananas, rich in potassium." },
-            { id: 3, name: "Fresh Strawberries", category: "fruits", price: 4.99, unit: "container", image: "https://source.unsplash.com/featured/?strawberry", rating: 4.8, reviews: 203, onSale: false, description: "Sweet and juicy strawberries, perfect for desserts or snacking." },
-            { id: 4, name: "Navel Oranges", category: "fruits", price: 3.49, unit: "bag", image: "https://source.unsplash.com/featured/?orange", rating: 4.3, reviews: 87, onSale: false, description: "Juicy and seedless navel oranges, packed with vitamin C." },
-            { id: 5, name: "Green Grapes", category: "fruits", price: 5.99, unit: "lb", image: "https://source.unsplash.com/featured/?grapes,green", rating: 4.6, reviews: 156, onSale: true, salePrice: 4.99, description: "Sweet and crisp green grapes, perfect for snacking." },
-            { id: 6, name: "Golden Pineapple", category: "fruits", price: 3.99, unit: "each", image: "https://source.unsplash.com/featured/?pineapple", rating: 4.4, reviews: 72, onSale: false, description: "Sweet and tangy golden pineapple, rich in vitamins." },
+            { id: 1, name: "Fresh Red Apples", category: "fruits", price: 2.99, unit: "lb", image: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: 128, onSale: false, description: "Crisp and juicy red apples, perfect for snacking or baking." },
+            { id: 2, name: "Organic Bananas", category: "fruits", price: 0.59, unit: "lb", image: "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.2, reviews: 95, onSale: true, salePrice: 0.49, description: "Sweet and creamy organic bananas, rich in potassium." },
+            { id: 3, name: "Fresh Strawberries", category: "fruits", price: 4.99, unit: "container", image: "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.8, reviews: 203, onSale: false, description: "Sweet and juicy strawberries, perfect for desserts or snacking." },
+            { id: 4, name: "Navel Oranges", category: "fruits", price: 3.49, unit: "bag", image: "https://images.unsplash.com/photo-1547514701-42782101795e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.3, reviews: 87, onSale: false, description: "Juicy and seedless navel oranges, packed with vitamin C." },
+            { id: 5, name: "Green Grapes", category: "fruits", price: 5.99, unit: "lb", image: "https://images.unsplash.com/photo-1537640538966-79f369143f8f?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.6, reviews: 156, onSale: true, salePrice: 4.99, description: "Sweet and crisp green grapes, perfect for snacking." },
+            { id: 6, name: "Golden Pineapple", category: "fruits", price: 3.99, unit: "each", image: "https://images.unsplash.com/photo-1550258987-190a2d41a8ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.4, reviews: 72, onSale: false, description: "Sweet and tangy golden pineapple, rich in vitamins." },
             
             // Vegetables
-            { id: 7, name: "Organic Spinach", category: "vegetables", price: 3.49, unit: "bunch", image: "https://source.unsplash.com/featured/?spinach", rating: 4.7, reviews: 145, onSale: false, description: "Fresh organic spinach, perfect for salads and cooking." },
-            { id: 8, name: "Baby Carrots", category: "vegetables", price: 1.99, unit: "lb", image: "https://source.unsplash.com/featured/?carrots", rating: 4.1, reviews: 89, onSale: false, description: "Sweet and crunchy baby carrots, perfect for snacking." },
-            { id: 9, name: "Fresh Broccoli", category: "vegetables", price: 2.49, unit: "head", image: "https://source.unsplash.com/featured/?broccoli", rating: 4.5, reviews: 112, onSale: true, salePrice: 1.99, description: "Fresh and crisp broccoli, rich in vitamins and fiber." },
-            { id: 10, name: "Bell Peppers Mix", category: "vegetables", price: 3.99, unit: "lb", image: "https://source.unsplash.com/featured/?bellpeppers", rating: 4.3, reviews: 76, onSale: false, description: "Colorful mix of bell peppers, perfect for stir-fries." },
-            { id: 11, name: "Vine Tomatoes", category: "vegetables", price: 2.99, unit: "lb", image: "https://source.unsplash.com/featured/?tomatoes", rating: 4.4, reviews: 134, onSale: false, description: "Juicy vine-ripened tomatoes, perfect for salads." },
-            { id: 12, name: "English Cucumbers", category: "vegetables", price: 1.49, unit: "each", image: "https://source.unsplash.com/featured/?cucumber", rating: 4.0, reviews: 58, onSale: false, description: "Crisp and refreshing English cucumbers, perfect for salads." },
+            { id: 7, name: "Organic Spinach", category: "vegetables", price: 3.49, unit: "bunch", image: "https://images.unsplash.com/photo-1576042754166-7b607f3c0b6c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.7, reviews: 145, onSale: false, description: "Fresh organic spinach, perfect for salads and cooking." },
+            { id: 8, name: "Baby Carrots", category: "vegetables", price: 1.99, unit: "lb", image: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.1, reviews: 89, onSale: false, description: "Sweet and crunchy baby carrots, perfect for snacking." },
+            { id: 9, name: "Fresh Broccoli", category: "vegetables", price: 2.49, unit: "head", image: "https://images.unsplash.com/photo-1459411552884-841db9b3cc2a?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: 112, onSale: true, salePrice: 1.99, description: "Fresh and crisp broccoli, rich in vitamins and fiber." },
+            { id: 10, name: "Bell Peppers Mix", category: "vegetables", price: 3.99, unit: "lb", image: "https://images.unsplash.com/photo-1563564374578-ba0c160a9347?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.3, reviews: 76, onSale: false, description: "Colorful mix of bell peppers, perfect for stir-fries." },
+            { id: 11, name: "Vine Tomatoes", category: "vegetables", price: 2.99, unit: "lb", image: "https://images.unsplash.com/photo-1592924359688-7a90e9e806b0?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.4, reviews: 134, onSale: false, description: "Juicy vine-ripened tomatoes, perfect for salads." },
+            { id: 12, name: "English Cucumbers", category: "vegetables", price: 1.49, unit: "each", image: "https://images.unsplash.com/photo-1581375064313-0ccb6c7f446d?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.0, reviews: 58, onSale: false, description: "Crisp and refreshing English cucumbers, perfect for salads." },
             
             // Dairy
-            { id: 13, name: "Whole Milk", category: "dairy", price: 3.99, unit: "gallon", image: "https://source.unsplash.com/featured/?milk", rating: 4.6, reviews: 189, onSale: false, description: "Fresh whole milk, rich in calcium and vitamins." },
-            { id: 14, name: "Aged Cheddar Cheese", category: "dairy", price: 5.99, unit: "lb", image: "https://source.unsplash.com/featured/?cheddar", rating: 4.8, reviews: 167, onSale: true, salePrice: 4.99, description: "Sharp and flavorful aged cheddar cheese." },
-            { id: 15, name: "Greek Yogurt", category: "dairy", price: 4.49, unit: "container", image: "https://source.unsplash.com/featured/?yogurt", rating: 4.7, reviews: 203, onSale: false, description: "Creamy and protein-rich Greek yogurt." },
-            { id: 16, name: "Unsalted Butter", category: "dairy", price: 4.99, unit: "lb", image: "https://source.unsplash.com/featured/?butter", rating: 4.5, reviews: 98, onSale: false, description: "Creamy unsalted butter, perfect for baking." },
-            { id: 17, name: "Free-Range Eggs", category: "dairy", price: 3.49, unit: "dozen", image: "https://source.unsplash.com/featured/?eggs", rating: 4.4, reviews: 145, onSale: false, description: "Fresh free-range eggs from happy chickens." },
-            { id: 18, name: "Cream Cheese", category: "dairy", price: 2.99, unit: "container", image: "https://source.unsplash.com/featured/?creamcheese", rating: 4.2, reviews: 67, onSale: false, description: "Smooth and creamy cream cheese, perfect for bagels." },
+            { id: 13, name: "Whole Milk", category: "dairy", price: 3.99, unit: "gallon", image: "https://images.unsplash.com/photo-1550583724-b2692b85b150?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.6, reviews: 189, onSale: false, description: "Fresh whole milk, rich in calcium and vitamins." },
+            { id: 14, name: "Aged Cheddar Cheese", category: "dairy", price: 5.99, unit: "lb", image: "https://images.unsplash.com/photo-1611293611921-8c9b2cf1f1d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.8, reviews: 167, onSale: true, salePrice: 4.99, description: "Sharp and flavorful aged cheddar cheese." },
+            { id: 15, name: "Greek Yogurt", category: "dairy", price: 4.49, unit: "container", image: "https://images.unsplash.com/photo-1488477181946-6428a0291777?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.7, reviews: 203, onSale: false, description: "Creamy and protein-rich Greek yogurt." },
+            { id: 16, name: "Unsalted Butter", category: "dairy", price: 4.99, unit: "lb", image: "https://images.unsplash.com/photo-1583232718707-8da4f6d4e3c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: 98, onSale: false, description: "Creamy unsalted butter, perfect for baking." },
+            { id: 17, name: "Free-Range Eggs", category: "dairy", price: 3.49, unit: "dozen", image: "https://images.unsplash.com/photo-1516684669134-de6f7c473a2a?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.4, reviews: 145, onSale: false, description: "Fresh free-range eggs from happy chickens." },
+            { id: 18, name: "Cream Cheese", category: "dairy", price: 2.99, unit: "container", image: "https://images.unsplash.com/photo-1628175589035-4286b0d4d4f7?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.2, reviews: 67, onSale: false, description: "Smooth and creamy cream cheese, perfect for bagels." },
             
             // Bakery
-            { id: 19, name: "Whole Wheat Bread", category: "bakery", price: 3.49, unit: "loaf", image: "https://source.unsplash.com/featured/?bread", rating: 4.3, reviews: 156, onSale: false, description: "Nutritious whole wheat bread, freshly baked daily." },
-            { id: 20, name: "Butter Croissants", category: "bakery", price: 4.99, unit: "pack", image: "https://source.unsplash.com/featured/?croissant", rating: 4.9, reviews: 234, onSale: true, salePrice: 3.99, description: "Flaky and buttery croissants, perfect for breakfast." },
-            { id: 21, name: "Plain Bagels", category: "bakery", price: 3.99, unit: "pack", image: "https://source.unsplash.com/featured/?bagels", rating: 4.5, reviews: 112, onSale: false, description: "Chewy and delicious plain bagels, perfect for toasting." },
-            { id: 22, name: "Blueberry Muffins", category: "bakery", price: 5.99, unit: "dozen", image: "https://source.unsplash.com/featured/?muffins", rating: 4.6, reviews: 89, onSale: false, description: "Moist and fluffy blueberry muffins, bursting with flavor." },
-            { id: 23, name: "Sourdough Bread", category: "bakery", price: 4.99, unit: "loaf", image: "https://source.unsplash.com/featured/?sourdough", rating: 4.7, reviews: 178, onSale: false, description: "Artisan sourdough bread with a crispy crust." },
-            { id: 24, name: "Glazed Donuts", category: "bakery", price: 6.99, unit: "dozen", image: "https://source.unsplash.com/featured/?donuts", rating: 4.4, reviews: 145, onSale: true, salePrice: 5.49, description: "Sweet and fluffy glazed donuts, perfect for treats." },
+            { id: 19, name: "Whole Wheat Bread", category: "bakery", price: 3.49, unit: "loaf", image: "https://images.unsplash.com/photo-1595535194436-9e9c513a6c7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.3, reviews: 156, onSale: false, description: "Nutritious whole wheat bread, freshly baked daily." },
+            { id: 20, name: "Butter Croissants", category: "bakery", price: 4.99, unit: "pack", image: "https://images.unsplash.com/photo-1555507036-94e75c0b1c8a?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.9, reviews: 234, onSale: true, salePrice: 3.99, description: "Flaky and buttery croissants, perfect for breakfast." },
+            { id: 21, name: "Plain Bagels", category: "bakery", price: 3.99, unit: "pack", image: "https://images.unsplash.com/photo-1588315574091-5cb2f9b6b2c0?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: 112, onSale: false, description: "Chewy and delicious plain bagels, perfect for toasting." },
+            { id: 22, name: "Blueberry Muffins", category: "bakery", price: 5.99, unit: "dozen", image: "https://images.unsplash.com/photo-1607902053270-8c7c1d9e0c3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.6, reviews: 89, onSale: false, description: "Moist and fluffy blueberry muffins, bursting with flavor." },
+            { id: 23, name: "Sourdough Bread", category: "bakery", price: 4.99, unit: "loaf", image: "https://images.unsplash.com/photo-1588315574091-5cb2f9b6b2c0?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.7, reviews: 178, onSale: false, description: "Artisan sourdough bread with a crispy crust." },
+            { id: 24, name: "Glazed Donuts", category: "bakery", price: 6.99, unit: "dozen", image: "https://images.unsplash.com/photo-1551024601-bec78aea9048?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.4, reviews: 145, onSale: true, salePrice: 5.49, description: "Sweet and fluffy glazed donuts, perfect for treats." },
             
             // Meat
-            { id: 25, name: "Boneless Chicken Breast", category: "meat", price: 8.99, unit: "lb", image: "https://source.unsplash.com/featured/?chicken", rating: 4.5, reviews: 267, onSale: false, description: "Lean and tender boneless chicken breast, perfect for grilling." },
-            { id: 26, name: "Ground Beef", category: "meat", price: 6.99, unit: "lb", image: "https://source.unsplash.com/featured/?beef", rating: 4.3, reviews: 189, onSale: false, description: "Fresh ground beef, perfect for burgers and meatballs." },
-            { id: 27, name: "Atlantic Salmon Fillet", category: "meat", price: 12.99, unit: "lb", image: "https://source.unsplash.com/featured/?salmon", rating: 4.8, reviews: 312, onSale: true, salePrice: 9.99, description: "Fresh Atlantic salmon fillet, rich in omega-3." },
-            { id: 28, name: "Pork Chops", category: "meat", price: 7.99, unit: "lb", image: "https://source.unsplash.com/featured/?pork", rating: 4.4, reviews: 134, onSale: false, description: "Juicy and flavorful pork chops, perfect for pan-frying." },
-            { id: 29, name: "Applewood Smoked Bacon", category: "meat", price: 9.99, unit: "lb", image: "https://source.unsplash.com/featured/?bacon", rating: 4.7, reviews: 245, onSale: false, description: "Smoky and crispy bacon, perfect for breakfast." },
-            { id: 30, name: "Turkey Breast", category: "meat", price: 10.99, unit: "lb", image: "https://source.unsplash.com/featured/?turkey", rating: 4.6, reviews: 156, onSale: false, description: "Lean and tender turkey breast, perfect for sandwiches." },
+            { id: 25, name: "Boneless Chicken Breast", category: "meat", price: 8.99, unit: "lb", image: "https://images.unsplash.com/photo-1604503468506-a8da13adaf6a?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: 267, onSale: false, description: "Lean and tender boneless chicken breast, perfect for grilling." },
+            { id: 26, name: "Ground Beef", category: "meat", price: 6.99, unit: "lb", image: "https://images.unsplash.com/photo-1586960894598-6d4a9b5b7c1a?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.3, reviews: 189, onSale: false, description: "Fresh ground beef, perfect for burgers and meatballs." },
+            { id: 27, name: "Atlantic Salmon Fillet", category: "meat", price: 12.99, unit: "lb", image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.8, reviews: 312, onSale: true, salePrice: 9.99, description: "Fresh Atlantic salmon fillet, rich in omega-3." },
+            { id: 28, name: "Pork Chops", category: "meat", price: 7.99, unit: "lb", image: "https://images.unsplash.com/photo-1603363814117-3f6bd8a8a4d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.4, reviews: 134, onSale: false, description: "Juicy and flavorful pork chops, perfect for pan-frying." },
+            { id: 29, name: "Applewood Smoked Bacon", category: "meat", price: 9.99, unit: "lb", image: "https://images.unsplash.com/photo-1527307937362-7b8c4d7e4b2a?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.7, reviews: 245, onSale: false, description: "Smoky and crispy bacon, perfect for breakfast." },
+            { id: 30, name: "Turkey Breast", category: "meat", price: 10.99, unit: "lb", image: "https://images.unsplash.com/photo-1604503468506-a8da13adaf6a?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.6, reviews: 156, onSale: false, description: "Lean and tender turkey breast, perfect for sandwiches." },
             
             // Pantry
-            { id: 31, name: "Penne Pasta", category: "pantry", price: 1.99, unit: "box", image: "https://source.unsplash.com/featured/?pasta", rating: 4.2, reviews: 98, onSale: false, description: "Premium penne pasta, perfect for hearty dishes." },
-            { id: 32, name: "Basmati Rice", category: "pantry", price: 4.99, unit: "bag", image: "https://source.unsplash.com/featured/?rice", rating: 4.5, reviews: 167, onSale: false, description: "Aromatic basmati rice, perfect for curries." },
-            { id: 33, name: "Extra Virgin Olive Oil", category: "pantry", price: 8.99, unit: "bottle", image: "https://source.unsplash.com/featured/?oliveoil", rating: 4.7, reviews: 203, onSale: true, salePrice: 6.99, description: "Premium extra virgin olive oil, cold-pressed." },
-            { id: 34, name: "Canned Tomatoes", category: "pantry", price: 2.49, unit: "can", image: "https://source.unsplash.com/featured/?cannedtomatoes", rating: 4.1, reviews: 76, onSale: false, description: "Premium canned tomatoes, perfect for sauces." },
-            { id: 35, name: "All-Purpose Flour", category: "pantry", price: 3.49, unit: "bag", image: "https://source.unsplash.com/featured/?flour", rating: 4.3, reviews: 112, onSale: false, description: "Versatile all-purpose flour, perfect for baking." },
-            { id: 36, name: "Granulated Sugar", category: "pantry", price: 2.99, unit: "bag", image: "https://source.unsplash.com/featured/?sugar", rating: 4.0, reviews: 89, onSale: false, description: "Pure granulated sugar, perfect for baking." },
+            { id: 31, name: "Penne Pasta", category: "pantry", price: 1.99, unit: "box", image: "https://images.unsplash.com/photo-1588207141321-794b5a6a0d7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.2, reviews: 98, onSale: false, description: "Premium penne pasta, perfect for hearty dishes." },
+            { id: 32, name: "Basmati Rice", category: "pantry", price: 4.99, unit: "bag", image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: 167, onSale: false, description: "Aromatic basmati rice, perfect for curries." },
+            { id: 33, name: "Extra Virgin Olive Oil", category: "pantry", price: 8.99, unit: "bottle", image: "https://images.unsplash.com/photo-1474972765224-0a2506d4a4e7?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.7, reviews: 203, onSale: true, salePrice: 6.99, description: "Premium extra virgin olive oil, cold-pressed." },
+            { id: 34, name: "Canned Tomatoes", category: "pantry", price: 2.49, unit: "can", image: "https://images.unsplash.com/photo-1592924359688-7a90e9e806b0?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.1, reviews: 76, onSale: false, description: "Premium canned tomatoes, perfect for sauces." },
+            { id: 35, name: "All-Purpose Flour", category: "pantry", price: 3.49, unit: "bag", image: "https://images.unsplash.com/photo-1595535194436-9e9c513a6c7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.3, reviews: 112, onSale: false, description: "Versatile all-purpose flour, perfect for baking." },
+            { id: 36, name: "Granulated Sugar", category: "pantry", price: 2.99, unit: "bag", image: "https://images.unsplash.com/photo-1588315574091-5cb2f9b6b2c0?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.0, reviews: 89, onSale: false, description: "Pure granulated sugar, perfect for baking." },
             
             // Beverages
-            { id: 37, name: "Fresh Orange Juice", category: "beverages", price: 4.99, unit: "gallon", image: "https://source.unsplash.com/featured/?orangejuice", rating: 4.4, reviews: 145, onSale: false, description: "100% fresh squeezed orange juice, no added sugar." },
-            { id: 38, name: "Colombian Coffee Beans", category: "beverages", price: 9.99, unit: "bag", image: "https://source.unsplash.com/featured/?coffee", rating: 4.8, reviews: 278, onSale: true, salePrice: 7.99, description: "Premium Colombian coffee beans, medium roast." },
-            { id: 39, name: "Green Tea Bags", category: "beverages", price: 5.99, unit: "box", image: "https://source.unsplash.com/featured/?greentea", rating: 4.6, reviews: 189, onSale: false, description: "Premium green tea bags, rich in antioxidants." },
-            { id: 40, name: "Sparkling Water", category: "beverages", price: 3.99, unit: "pack", image: "https://source.unsplash.com/featured/?sparklingwater", rating: 4.2, reviews: 98, onSale: false, description: "Refreshing sparkling water, natural flavors." },
-            { id: 41, name: "Cabernet Sauvignon", category: "beverages", price: 14.99, unit: "bottle", image: "https://source.unsplash.com/featured/?redwine", rating: 4.7, reviews: 156, onSale: false, description: "Full-bodied Cabernet Sauvignon, aged to perfection." },
-            { id: 42, name: "Craft Beer Variety", category: "beverages", price: 12.99, unit: "6-pack", image: "https://source.unsplash.com/featured/?beer", rating: 4.5, reviews: 203, onSale: true, salePrice: 9.99, description: "Assorted craft beers, local brewery selection." },
+            { id: 37, name: "Fresh Orange Juice", category: "beverages", price: 4.99, unit: "gallon", image: "https://images.unsplash.com/photo-1607532945297-9c2f1fd6c6c5?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.4, reviews: 145, onSale: false, description: "100% fresh squeezed orange juice, no added sugar." },
+            { id: 38, name: "Colombian Coffee Beans", category: "beverages", price: 9.99, unit: "bag", image: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.8, reviews: 278, onSale: true, salePrice: 7.99, description: "Premium Colombian coffee beans, medium roast." },
+            { id: 39, name: "Green Tea Bags", category: "beverages", price: 5.99, unit: "box", image: "https://images.unsplash.com/photo-1557481428-3b1b3f3b5c2e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.6, reviews: 189, onSale: false, description: "Premium green tea bags, rich in antioxidants." },
+            { id: 40, name: "Sparkling Water", category: "beverages", price: 3.99, unit: "pack", image: "https://images.unsplash.com/photo-1558315574091-5cb2f9b6b2c0?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.2, reviews: 98, onSale: false, description: "Refreshing sparkling water, natural flavors." },
+            { id: 41, name: "Cabernet Sauvignon", category: "beverages", price: 14.99, unit: "bottle", image: "https://images.unsplash.com/photo-1566888408420-8d5d6f0d8e0e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.7, reviews: 156, onSale: false, description: "Full-bodied Cabernet Sauvignon, aged to perfection." },
+            { id: 42, name: "Craft Beer Variety", category: "beverages", price: 12.99, unit: "6-pack", image: "https://images.unsplash.com/photo-1577453786005-8e2c7e5b5b3c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: 203, onSale: true, salePrice: 9.99, description: "Assorted craft beers, local brewery selection." },
             
             // Frozen
-            { id: 43, name: "Pepperoni Pizza", category: "frozen", price: 7.99, unit: "each", image: "https://source.unsplash.com/featured/?pizza", rating: 4.3, reviews: 234, onSale: false, description: "Classic pepperoni pizza, ready to bake." },
-            { id: 44, name: "Vanilla Ice Cream", category: "frozen", price: 5.99, unit: "tub", image: "https://source.unsplash.com/featured/?icecream", rating: 4.9, reviews: 312, onSale: true, salePrice: 3.99, description: "Creamy vanilla ice cream, made with real vanilla." },
-            { id: 45, name: "Mixed Vegetables", category: "frozen", price: 2.99, unit: "bag", image: "https://source.unsplash.com/featured/?frozenvegetables", rating: 4.1, reviews: 89, onSale: false, description: "Nutritious mixed vegetables, flash-frozen." },
-            { id: 46, name: "Mixed Berries", category: "frozen", price: 6.99, unit: "bag", image: "https://source.unsplash.com/featured/?berries", rating: 4.5, reviews: 145, onSale: false, description: "Mixed berries blend, perfect for smoothies." },
-            { id: 47, name: "Chicken Dinners", category: "frozen", price: 4.99, unit: "box", image: "https://source.unsplash.com/featured/?frozendinner", rating: 3.9, reviews: 167, onSale: false, description: "Convenient frozen chicken dinners, ready to heat." },
-            { id: 48, name: "Fish Fillets", category: "frozen", price: 8.99, unit: "lb", image: "https://source.unsplash.com/featured/?fishfillets", rating: 4.2, reviews: 98, onSale: false, description: "Premium fish fillets, individually wrapped." }
+            { id: 43, name: "Pepperoni Pizza", category: "frozen", price: 7.99, unit: "each", image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.3, reviews: 234, onSale: false, description: "Classic pepperoni pizza, ready to bake." },
+            { id: 44, name: "Vanilla Ice Cream", category: "frozen", price: 5.99, unit: "tub", image: "https://images.unsplash.com/photo-1488900128323-21503983a07e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.9, reviews: 312, onSale: true, salePrice: 3.99, description: "Creamy vanilla ice cream, made with real vanilla." },
+            { id: 45, name: "Mixed Vegetables", category: "frozen", price: 2.99, unit: "bag", image: "https://images.unsplash.com/photo-1611293611921-8c9b2cf1f1d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.1, reviews: 89, onSale: false, description: "Nutritious mixed vegetables, flash-frozen." },
+            { id: 46, name: "Mixed Berries", category: "frozen", price: 6.99, unit: "bag", image: "https://images.unsplash.com/photo-1498557850523-fd3d118b962e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: 145, onSale: false, description: "Mixed berries blend, perfect for smoothies." },
+            { id: 47, name: "Chicken Dinners", category: "frozen", price: 4.99, unit: "box", image: "https://images.unsplash.com/photo-1603363814117-3f6bd8a8a4d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 3.9, reviews: 167, onSale: false, description: "Convenient frozen chicken dinners, ready to heat." },
+            { id: 48, name: "Fish Fillets", category: "frozen", price: 8.99, unit: "lb", image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.2, reviews: 98, onSale: false, description: "Premium fish fillets, individually wrapped." }
         ];
 
         // App state
@@ -1004,6 +1128,7 @@ Whole Wheat Bread - 1 loaf" required class="w-full px-4 py-2 border border-gray-
         const itemsPerPage = 20;
         let checkoutStep = 1;
         let currentOrder = null;
+        let orderTrackingInterval = null;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -1066,7 +1191,9 @@ Whole Wheat Bread - 1 loaf" required class="w-full px-4 py-2 border border-gray-
                 paymentMethod: paymentMethod,
                 notes: notes,
                 date: new Date().toISOString(),
-                status: 'confirmed'
+                status: 'confirmed',
+                progress: 0,
+                eta: 30 // 30 minutes ETA
             };
             
             // Save order to localStorage
@@ -2211,6 +2338,8 @@ Whole Wheat Bread - 1 loaf" required class="w-full px-4 py-2 border border-gray-
                 total: total,
                 date: new Date().toISOString(),
                 status: 'confirmed',
+                progress: 0,
+                eta: 30, // 30 minutes ETA
                 address: addresses.length > 0 ? addresses[0] : null,
                 estimatedDelivery: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() // 2 days from now
             };
@@ -2325,6 +2454,99 @@ Whole Wheat Bread - 1 loaf" required class="w-full px-4 py-2 border border-gray-
                     <div class="font-medium">$${(item.price * item.quantity).toFixed(2)}</div>
                 </div>
             `).join('');
+            
+            // Start real-time tracking simulation
+            startOrderTracking();
+        }
+
+        // Start real-time order tracking
+        function startOrderTracking() {
+            // Clear any existing interval
+            if (orderTrackingInterval) {
+                clearInterval(orderTrackingInterval);
+            }
+            
+            // Reset UI
+            document.getElementById('deliveryTruck').style.left = '10%';
+            document.getElementById('deliveryTruck').classList.remove('active');
+            document.getElementById('deliveryPerson').classList.remove('active');
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('etaCounter').textContent = 'ETA: 30 mins';
+            
+            // Start tracking simulation
+            let progress = 0;
+            let eta = 30;
+            
+            orderTrackingInterval = setInterval(() => {
+                progress += 10;
+                eta -= 3;
+                
+                if (progress > 100) progress = 100;
+                if (eta < 0) eta = 0;
+                
+                // Update progress bar
+                document.getElementById('progressFill').style.width = progress + '%';
+                document.getElementById('etaCounter').textContent = `ETA: ${eta} mins`;
+                
+                // Update truck position
+                const truckPosition = 10 + (progress * 0.8); // Move from 10% to 90%
+                document.getElementById('deliveryTruck').style.left = truckPosition + '%';
+                
+                // Update order status based on progress
+                if (progress >= 25 && currentOrder.status === 'confirmed') {
+                    currentOrder.status = 'processing';
+                    updateOrderStatus();
+                } else if (progress >= 50 && currentOrder.status === 'processing') {
+                    currentOrder.status = 'shipped';
+                    updateOrderStatus();
+                } else if (progress >= 90 && currentOrder.status === 'shipped') {
+                    currentOrder.status = 'delivered';
+                    updateOrderStatus();
+                    
+                    // Switch to delivery person
+                    document.getElementById('deliveryTruck').classList.add('active');
+                    document.getElementById('deliveryPerson').classList.add('active');
+                    document.getElementById('deliveryPerson').style.left = truckPosition + '%';
+                }
+                
+                // Save progress to order
+                currentOrder.progress = progress;
+                currentOrder.eta = eta;
+                localStorage.setItem('orders', JSON.stringify(orders));
+                
+                // Stop when delivered
+                if (progress >= 100) {
+                    clearInterval(orderTrackingInterval);
+                    showNotification('Order delivered successfully!');
+                }
+            }, 2000); // Update every 2 seconds
+        }
+
+        // Update order status UI
+        function updateOrderStatus() {
+            const statusSteps = ['confirmed', 'processing', 'shipped', 'delivered'];
+            const currentStatusIndex = statusSteps.indexOf(currentOrder.status);
+            
+            for (let i = 1; i <= 4; i++) {
+                const step = document.getElementById(`step${i}`);
+                if (i <= currentStatusIndex + 1) {
+                    step.classList.add('active');
+                } else {
+                    step.classList.remove('active');
+                }
+            }
+            
+            // Update status message
+            const statusMessages = {
+                'confirmed': 'Your order has been confirmed and is being processed.',
+                'processing': 'Your order is being prepared for shipment.',
+                'shipped': 'Your order has been shipped and is on its way.',
+                'delivered': 'Your order has been delivered. Enjoy!'
+            };
+            
+            document.getElementById('trackerStatusMessage').innerHTML = `
+                <p class="text-blue-700">${statusMessages[currentOrder.status]}</p>
+            `;
         }
 
         // Show main content
@@ -2333,6 +2555,12 @@ Whole Wheat Bread - 1 loaf" required class="w-full px-4 py-2 border border-gray-
             document.getElementById('userDashboard').style.display = 'none';
             document.getElementById('orderConfirmation').style.display = 'none';
             document.getElementById('orderTracker').style.display = 'none';
+            
+            // Stop tracking if active
+            if (orderTrackingInterval) {
+                clearInterval(orderTrackingInterval);
+                orderTrackingInterval = null;
+            }
         }
 
         // Show user dashboard
@@ -2341,6 +2569,12 @@ Whole Wheat Bread - 1 loaf" required class="w-full px-4 py-2 border border-gray-
             document.getElementById('userDashboard').style.display = 'block';
             document.getElementById('orderConfirmation').style.display = 'none';
             document.getElementById('orderTracker').style.display = 'none';
+            
+            // Stop tracking if active
+            if (orderTrackingInterval) {
+                clearInterval(orderTrackingInterval);
+                orderTrackingInterval = null;
+            }
             
             // Update dashboard stats
             document.getElementById('totalOrders').textContent = orders.length;
